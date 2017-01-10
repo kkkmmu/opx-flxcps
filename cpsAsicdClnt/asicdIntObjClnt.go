@@ -92,3 +92,12 @@ func (asicdClientMgr *CPSAsicdClntMgr) IsLinuxOnlyPlugin() (bool, error) {
 func (asicdClientMgr *CPSAsicdClntMgr) GetAllPortsWithDirtyCache() ([]*asicdClntDefs.Port, error) {
 	return nil, nil
 }
+
+func (asicdClientMgr *CPSAsicdClntMgr) OnewayCreateIPv4Route(ipv4RouteList []*asicdClntDefs.IPv4Route) {
+}
+func (asicdClientMgr *CPSAsicdClntMgr) OnewayDeleteIPv4Route(ipv4RouteList []*asicdClntDefs.IPv4Route) {
+}
+func (asicdClientMgr *CPSAsicdClntMgr) OnewayCreateIPv6Route(ipv6RouteList []*asicdClntDefs.IPv6Route) {
+}
+func (asicdClientMgr *CPSAsicdClntMgr) OnewayDeleteIPv6Route(ipv6RouteList []*asicdClntDefs.IPv6Route) {
+}
