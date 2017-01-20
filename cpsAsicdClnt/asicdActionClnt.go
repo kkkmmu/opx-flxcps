@@ -30,3 +30,7 @@ import (
 func (asicdClientMgr *CPSAsicdClntMgr) ExecuteActionAsicdClearCounters(cfg *actions.AsicdClearCounters) (bool, error) {
 	return true, nil
 }
+
+func (asicdClientMgr *CPSAsicdClntMgr) ExecuteActionFlushMacTableEntry(cfg *actions.FlushMacTableEntry) (bool, error) {
+	return true, nil
+}
