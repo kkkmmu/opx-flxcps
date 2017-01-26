@@ -26,7 +26,17 @@ package cpsAsicdClnt
 import (
 	"models/objects"
 	"utils/clntUtils/clntDefs/asicdClntDefs"
+	"errors"
 )
+
+/*
+#include <stdint.h>
+#include <stdlib.h>
+#include <cps.h>
+#cgo CFLAGS: -I. -I/usr/include/
+#cgo LDFLAGS: -L/usr/lib/x86_64-linux-gnu/ -lsonic_object_library
+*/
+import "C"
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetBulkAsicGlobalState(fromIndex int, count int) (*asicdClntDefs.AsicGlobalStateGetInfo, error) {
 	var retObj asicdClntDefs.AsicGlobalStateGetInfo
@@ -107,6 +117,21 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetAsicSummaryState(ModuleId uint8) (*obj
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) CreateVlan(cfg *objects.Vlan) (bool, error) {
+	Logger.Info("Calling CPS CreateVlan:", cfg)
+	tagPorts := C.MakeCharArray(C.int(len(cfg.IntfList)))
+	defer C.FreeCharArray(tagPorts, C.int(len(cfg.IntfList)))
+	for idx, intf := range cfg.IntfList {
+		C.SetArrayString(tagPorts, C.CString(intf), C.int(idx))
+	}
+	untagPorts := C.MakeCharArray(C.int(len(cfg.UntagIntfList)))
+	defer C.FreeCharArray(untagPorts, C.int(len(cfg.UntagIntfList)))
+	for idx, intf := range cfg.UntagIntfList {
+		C.SetArrayString(untagPorts, C.CString(intf), C.int(idx))
+	}
+	rv := int(C.CPSCreateVlan(C.uint32_t(cfg.VlanId), C.uint32_t(len(cfg.IntfList)), tagPorts, C.uint32_t(len(cfg.UntagIntfList)), untagPorts))
+	if rv != 0 {
+		return false, errors.New("Error Creating Vlan")
+	}
 	return true, nil
 }
 

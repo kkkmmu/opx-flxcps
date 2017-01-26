@@ -38,8 +38,8 @@ var Logger logging.LoggerIntf
 func NewAsicdClntInit(clntInitParams *clntIntfs.BaseClntInitParams) (*CPSAsicdClntMgr, error) {
 	//var err error
 	cpsAsicdClntMgr := new(CPSAsicdClntMgr)
+	Logger = clntInitParams.Logger
 	/*
-		Logger = clntInitParams.Logger
 		err = cpsAsicdClntMgr.GetAsicdThriftClientHdl(clntInitParams)
 		if cpsAsicdClntMgr.ClientHdl == nil || err != nil {
 			Logger.Err("Unable Initialize Asicd Client", err)
