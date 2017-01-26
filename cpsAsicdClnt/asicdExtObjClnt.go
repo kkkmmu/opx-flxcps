@@ -136,6 +136,11 @@ func (asicdClientMgr *CPSAsicdClntMgr) CreateVlan(cfg *objects.Vlan) (bool, erro
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) DeleteVlan(cfg *objects.Vlan) (bool, error) {
+	Logger.Info("Calling CPS DeleteVlan:", cfg)
+	rv := int(C.CPSDeleteVlan(C.uint32_t(cfg.VlanId)))
+	if rv != 0 {
+		return false, errors.New("Error Delete Vlan")
+	}
 	return true, nil
 }
 

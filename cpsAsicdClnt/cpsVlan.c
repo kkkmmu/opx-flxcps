@@ -86,19 +86,17 @@ cps_api_return_code_t _create_vlan(uint32_t vlanId) {
 	return retVal;
 }
 
-#if 0
-
-cps_api_return_code_t delete_vlan(uint32_t vlanId) {
+cps_api_return_code_t CPSDeleteVlan(uint32_t vlanId) {
 	cps_api_object_t obj = cps_api_object_create();
 	cps_api_return_code_t retVal = cps_api_ret_code_OK;
+	char br_name[256] = {0};
 
 	cps_api_key_from_attr_with_qual(cps_api_object_key(obj), DELL_BASE_IF_CMN_IF_INTERFACES_INTERFACE_OBJ, cps_api_qualifier_TARGET);
 
 	cps_api_object_attr_add(obj,IF_INTERFACES_INTERFACE_TYPE, (const char *)IF_INTERFACE_TYPE_IANAIFT_IANA_INTERFACE_TYPE_IANAIFT_L2VLAN, sizeof(IF_INTERFACE_TYPE_IANAIFT_IANA_INTERFACE_TYPE_IANAIFT_L2VLAN));
-	// Ashutosh: It doesnt work with vlanId
 	//cps_api_object_attr_add_u32(obj,BASE_IF_VLAN_IF_INTERFACES_INTERFACE_ID, vlanId);
 
-	const char *br_name = "br1000";
+	sprintf(br_name, "br%u", vlanId);
 	cps_api_set_key_data(obj, IF_INTERFACES_INTERFACE_NAME, cps_api_object_ATTR_T_BIN,
                              br_name, strlen(br_name) + 1 );
 
@@ -126,7 +124,6 @@ cps_api_return_code_t delete_vlan(uint32_t vlanId) {
 	cps_api_transaction_close(&tr);
 	return retVal;
 }
-#endif
 
 cps_api_return_code_t CPSCreateVlan(uint32_t vlanId, uint32_t numOfTagPorts, char **tagPorts, uint32_t numOfUntagPorts, char **untagPorts) {
 	cps_api_return_code_t retVal = cps_api_ret_code_OK;
