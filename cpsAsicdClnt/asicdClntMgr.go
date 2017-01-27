@@ -24,13 +24,25 @@
 package cpsAsicdClnt
 
 import (
+	"errors"
 	"utils/clntUtils/clntIntfs"
 	"utils/logging"
 )
 
+type Port struct {
+	IntfRef     string
+	IfIndex     int32
+	Description string
+	AdminState  string
+	MacAddr     string
+	Speed       int32
+	Duplex      string
+}
+
 type CPSAsicdClntMgr struct {
 	//NCtrlCh   chan bool
 	//ClientHdl *asicdServices.ASICDServicesClient
+	PortDB []Port
 }
 
 var Logger logging.LoggerIntf
@@ -39,6 +51,10 @@ func NewAsicdClntInit(clntInitParams *clntIntfs.BaseClntInitParams) (*CPSAsicdCl
 	//var err error
 	cpsAsicdClntMgr := new(CPSAsicdClntMgr)
 	Logger = clntInitParams.Logger
+	err := cpsAsicdClntMgr.GetAllPortConfig()
+	if err != nil {
+		return nil, errors.New("Failed GetAllPortConfig()")
+	}
 	/*
 		err = cpsAsicdClntMgr.GetAsicdThriftClientHdl(clntInitParams)
 		if cpsAsicdClntMgr.ClientHdl == nil || err != nil {

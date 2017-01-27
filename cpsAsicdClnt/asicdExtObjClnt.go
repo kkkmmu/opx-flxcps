@@ -232,7 +232,32 @@ func (asicdClientMgr *CPSAsicdClntMgr) DeletePort(cfg *objects.Port) (bool, erro
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetBulkPort(fromIdx, count int) (*asicdClntDefs.PortGetInfo, error) {
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
 	var retObj asicdClntDefs.PortGetInfo
+	var idx, numEntries int
+	if (fromIdx > len(asicdClientMgr.PortDB)) || (fromIdx < 0) {
+		Logger.Err("Invalid fromIdx port argument in get bulk port config")
+		return nil, errors.New("Invalid fromIdx port argument in get bulk port config")
+	}
+	if count < 0 {
+		Logger.Err("Invalid count in get bulk port config")
+		return nil, errors.New("Invalid count int get bulk port config")
+	}
+	for idx = fromIdx; idx < len(asicdClientMgr.PortDB); idx++ {
+		if numEntries == count {
+			retObj.More = true
+			break
+		}
+		var portCfg objects.Port
+		portCfg.IntfRef = asicdClientMgr.PortDB[idx].IntfRef
+		retObj.PortList = append(retObj.PortList, &portCfg)
+		numEntries++
+	}
+	retObj.EndIdx = int32(idx)
+	if idx == len(asicdClientMgr.PortDB) {
+		retObj.More = true
+	}
 	return &retObj, nil
 }
 

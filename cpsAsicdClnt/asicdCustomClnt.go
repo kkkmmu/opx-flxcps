@@ -25,7 +25,19 @@ package cpsAsicdClnt
 
 import (
 	"models/objects"
+	"errors"
 )
+
+/*
+#include <stdint.h>
+#include <stdlib.h>
+#include <cps.h>
+#cgo CFLAGS: -I. -I/usr/include/
+#cgo LDFLAGS: -L/usr/lib/x86_64-linux-gnu/ -lsonic_object_library
+*/
+import "C"
+
+type PortCfg C.struct_portCfg_s
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetSysRsvdVlan() int {
 	return 0
@@ -50,4 +62,28 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetMinSysPort() int {
 func (asicdClientMgr *CPSAsicdClntMgr) GetAllSubIPv4IntfState() ([]*objects.SubIPv4IntfState, error) {
 	retObj := make([]*objects.SubIPv4IntfState, 0)
 	return retObj, nil
+}
+
+func (asicdClientMgr *CPSAsicdClntMgr) GetAllPortConfig() error {
+	portCfg := make([]PortCfg, 256)
+	count := uint8(0)
+	ret := int(C.CPSGetAllPortCfg((*C.struct_portCfg_s)(&portCfg[0]), (*C.uint8_t)(&count)))
+	if ret != 0 {
+		Logger.Err("Error GetAllPortCfg()", ret)
+		return errors.New("Error GetAllPortCfg()")
+	}
+	Logger.Info("Port Config:", portCfg)
+	portMap := make(map[string]bool)
+	for idx := 0; idx < int(count); idx++ {
+		portName := C.GoString(&(portCfg[idx].PortName[0]))
+		_, exist := portMap[portName]
+		if !exist {
+			var port Port
+			Logger.Info("Port IfName:", portName, idx)
+			port.IntfRef = portName
+			asicdClientMgr.PortDB = append(asicdClientMgr.PortDB, port)
+			portMap[portName] = true
+		}
+	}
+	return nil
 }
