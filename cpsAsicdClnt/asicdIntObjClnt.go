@@ -25,9 +25,44 @@ package cpsAsicdClnt
 
 import (
 	"utils/clntUtils/clntDefs/asicdClntDefs"
+	"utils/netUtils"
+	"net"
+	"errors"
+	"fmt"
 )
 
+/*
+#include <stdint.h>
+#include <stdlib.h>
+#include <cps.h>
+#cgo CFLAGS: -I. -I/usr/include/
+#cgo LDFLAGS: -L/usr/lib/x86_64-linux-gnu/ -lsonic_object_library
+*/
+import "C"
+
+
 func (asicdClientMgr *CPSAsicdClntMgr) CreateIPv4Neighbor(ipAddr, macAddr string, vlanId, ifIndex int32) (val int32, err error) {
+	var intfName string
+	parsedMacAddr, err := net.ParseMAC(macAddr)
+	if err != nil {
+		Logger.Info("Error CreateIPv4Neighbor, ParseMAC", macAddr)
+		return -1, errors.New("Error CreateIPv4Neighbor, ParseMAC")
+	}
+	if vlanId != -1 {
+		intfName = fmt.Sprintf("br%d", vlanId)
+	} else {
+		intf, err := net.InterfaceByIndex(int(ifIndex))
+		if err != nil {
+			Logger.Info("Error CreateIPv4Neighbor, Invalid ifIndex", ifIndex)
+			return -1, errors.New("Error CreateIPv4Neighbor, Invalid ifIndex")
+		}
+		intfName = intf.Name
+	}
+	rv := int(C.CPSCreateIPv4Neighbor(C.CString(ipAddr), C.CString(intfName), (*C.uint8_t)(&parsedMacAddr[0])))
+	if rv != 0 {
+		Logger.Info("Error Creating IPv4 Neighbor", ipAddr, macAddr, vlanId, ifIndex)
+		return -1, errors.New("Error Creating IPv4 Neighbor")
+	}
 	return val, err
 }
 
@@ -36,6 +71,27 @@ func (asicdClientMgr *CPSAsicdClntMgr) UpdateIPv4Neighbor(ipAddr, macAddr string
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) DeleteIPv4Neighbor(ipAddr, macAddr string, vlanId, ifIndex int32) (val int32, err error) {
+	var intfName string
+	parsedMacAddr, err := net.ParseMAC(macAddr)
+	if err != nil {
+		Logger.Info("Error CreateIPv4Neighbor, ParseMAC", macAddr)
+		return -1, errors.New("Error CreateIPv4Neighbor, ParseMAC")
+	}
+	if vlanId != -1 {
+		intfName = fmt.Sprintf("br%d", vlanId)
+	} else {
+		intf, err := net.InterfaceByIndex(int(ifIndex))
+		if err != nil {
+			Logger.Info("Error CreateIPv4Neighbor, Invalid ifIndex", ifIndex)
+			return -1, errors.New("Error CreateIPv4Neighbor, Invalid ifIndex")
+		}
+		intfName = intf.Name
+	}
+	rv := int(C.CPSDeleteIPv4Neighbor(C.CString(ipAddr), C.CString(intfName), (*C.uint8_t)(&parsedMacAddr[0])))
+	if rv != 0 {
+		Logger.Info("Error Creating IPv4 Neighbor", ipAddr, macAddr, vlanId, ifIndex)
+		return -1, errors.New("Error Creating IPv4 Neighbor")
+	}
 	return val, err
 }
 
@@ -94,8 +150,38 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetAllPortsWithDirtyCache() ([]*asicdClnt
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) OnewayCreateIPv4Route(ipv4RouteList []*asicdClntDefs.IPv4Route) {
+	for idx := 0; idx < len(ipv4RouteList); idx++ {
+		destNw := ipv4RouteList[idx].DestinationNw
+		prefixLen, err := netUtils.GetPrefixLen(net.ParseIP(ipv4RouteList[idx].NetworkMask))
+		if err != nil {
+			Logger.Err("Error getting the prefixlen for:", ipv4RouteList[idx])
+			continue
+		}
+		for idx1 := 0; idx1 < len(ipv4RouteList[idx].NextHopList); idx1++ {
+			nhIP := ipv4RouteList[idx].NextHopList[idx1].NextHopIp
+			rv := int(C.CPSCreateIPv4Route(C.CString(destNw), C.uint32_t(prefixLen), C.CString(nhIP)))
+			if rv != 0 {
+				Logger.Info("Error Creating IPv4Route", destNw, prefixLen, nhIP)
+			}
+		}
+	}
 }
 func (asicdClientMgr *CPSAsicdClntMgr) OnewayDeleteIPv4Route(ipv4RouteList []*asicdClntDefs.IPv4Route) {
+	for idx := 0; idx < len(ipv4RouteList); idx++ {
+		destNw := ipv4RouteList[idx].DestinationNw
+		prefixLen, err := netUtils.GetPrefixLen(net.ParseIP(ipv4RouteList[idx].NetworkMask))
+		if err != nil {
+			Logger.Err("Error getting the prefixlen for:", ipv4RouteList[idx])
+			continue
+		}
+		for idx1 := 0; idx1 < len(ipv4RouteList[idx].NextHopList); idx1++ {
+			nhIP := ipv4RouteList[idx].NextHopList[idx1].NextHopIp
+			rv := int(C.CPSDeleteIPv4Route(C.CString(destNw), C.uint32_t(prefixLen), C.CString(nhIP)))
+			if rv != 0 {
+				Logger.Info("Error Creating IPv4Route", destNw, prefixLen, nhIP)
+			}
+		}
+	}
 }
 func (asicdClientMgr *CPSAsicdClntMgr) OnewayCreateIPv6Route(ipv6RouteList []*asicdClntDefs.IPv6Route) {
 }
