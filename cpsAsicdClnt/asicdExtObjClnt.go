@@ -27,6 +27,9 @@ import (
 	"models/objects"
 	"utils/clntUtils/clntDefs/asicdClntDefs"
 	"errors"
+	"fmt"
+	"net"
+	"sync"
 )
 
 /*
@@ -37,6 +40,8 @@ import (
 #cgo LDFLAGS: -L/usr/lib/x86_64-linux-gnu/ -lsonic_object_library
 */
 import "C"
+
+var cpsAsicdMutex *sync.Mutex = &sync.Mutex{}
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetBulkAsicGlobalState(fromIndex int, count int) (*asicdClntDefs.AsicGlobalStateGetInfo, error) {
 	var retObj asicdClntDefs.AsicGlobalStateGetInfo
@@ -117,6 +122,8 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetAsicSummaryState(ModuleId uint8) (*obj
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) CreateVlan(cfg *objects.Vlan) (bool, error) {
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
 	Logger.Info("Calling CPS CreateVlan:", cfg)
 	tagPorts := C.MakeCharArray(C.int(len(cfg.IntfList)))
 	defer C.FreeCharArray(tagPorts, C.int(len(cfg.IntfList)))
@@ -136,6 +143,8 @@ func (asicdClientMgr *CPSAsicdClntMgr) CreateVlan(cfg *objects.Vlan) (bool, erro
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) DeleteVlan(cfg *objects.Vlan) (bool, error) {
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
 	Logger.Info("Calling CPS DeleteVlan:", cfg)
 	rv := int(C.CPSDeleteVlan(C.uint32_t(cfg.VlanId)))
 	if rv != 0 {
@@ -158,10 +167,42 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetVlanState(VlanId int32) (*objects.Vlan
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) CreateIPv4Intf(cfg *objects.IPv4Intf) (bool, error) {
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
+	Logger.Info("Calling CPS CreateIPv4Intf:", cfg)
+	ipAddr, ipNet, err := net.ParseCIDR(cfg.IpAddr)
+	if err != nil {
+		return false, errors.New(fmt.Sprintln("Invalid IP Address", err))
+	}
+	prefixLen, _ := ipNet.Mask.Size()
+	if err != nil {
+		return false, errors.New(fmt.Sprintln("Invalid IP Address", err))
+	}
+
+	rv := int(C.CPSCreateIPv4Intf(C.CString(cfg.IntfRef), C.CString(ipAddr.String()), C.uint32_t(prefixLen)))
+	if rv != 0 {
+		return false, errors.New("Error Creating IPv4 Intf")
+	}
 	return true, nil
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) DeleteIPv4Intf(cfg *objects.IPv4Intf) (bool, error) {
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
+	Logger.Info("Calling CPS DeleteIPv4Intf:", cfg)
+	ipAddr, ipNet, err := net.ParseCIDR(cfg.IpAddr)
+	if err != nil {
+		return false, errors.New(fmt.Sprintln("Invalid IP Address", err))
+	}
+	prefixLen, _ := ipNet.Mask.Size()
+	if err != nil {
+		return false, errors.New(fmt.Sprintln("Invalid IP Address", err))
+	}
+
+	rv := int(C.CPSDeleteIPv4Intf(C.CString(cfg.IntfRef), C.CString(ipAddr.String()), C.uint32_t(prefixLen)))
+	if rv != 0 {
+		return false, errors.New("Error Creating IPv4 Intf")
+	}
 	return true, nil
 }
 
