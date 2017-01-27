@@ -55,8 +55,6 @@ typedef struct portCfg_s {
 char** MakeCharArray(int size);
 void SetArrayString(char **a, char *s, int n);
 void FreeCharArray(char **a, int size);
-PortCfg_t* MakePortCfg(int size);
-void FreePortCfg(PortCfg_t *cfg);
 
 cps_api_return_code_t CPSCreateVlan(uint32_t vlanId, uint32_t numOfTagPorts, char **tagPorts, uint32_t numOfUntagPorts, char **untagPorts);
 cps_api_return_code_t CPSDeleteVlan(uint32_t vlanId);

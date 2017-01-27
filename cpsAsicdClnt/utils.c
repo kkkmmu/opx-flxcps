@@ -38,13 +38,3 @@ void FreeCharArray(char **a, int size) {
 	}
         free(a);
 }
-
-PortCfg_t* MakePortCfg(int size) {
-        return calloc(sizeof(PortCfg_t), size);
-}
-
-void FreePortCfg(PortCfg_t *a) {
-        free(a);
-}
-
-
