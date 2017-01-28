@@ -40,12 +40,23 @@ type Port struct {
 	Duplex      string
 }
 
+type Vlan struct {
+	VlanName string
+	OperState string
+	IfIndex int32
+	AdminState string
+	IntfList map[int32]bool
+	UntagIntfList map[int32]bool
+}
+
 type CPSAsicdClntMgr struct {
 	//NCtrlCh   chan bool
 	//ClientHdl *asicdServices.ASICDServicesClient
 	PortDB []Port
 	IfIdxToIfIdMap map[int32]int32
 	IfIdxToIfTypeMap map[int32]int32
+	VlanDB map[int32]Vlan
+	VlanList []int32
 }
 
 var Logger logging.LoggerIntf
@@ -56,6 +67,7 @@ func NewAsicdClntInit(clntInitParams *clntIntfs.BaseClntInitParams) (*CPSAsicdCl
 	Logger = clntInitParams.Logger
 	cpsAsicdClntMgr.IfIdxToIfIdMap = make(map[int32]int32)
 	cpsAsicdClntMgr.IfIdxToIfTypeMap = make(map[int32]int32)
+	cpsAsicdClntMgr.VlanDB = make(map[int32]Vlan)
 	err := cpsAsicdClntMgr.GetAllPortConfig()
 	if err != nil {
 		return nil, errors.New("Failed GetAllPortConfig()")

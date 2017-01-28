@@ -139,13 +139,38 @@ func (asicdClientMgr *CPSAsicdClntMgr) CreateVlan(cfg *objects.Vlan) (bool, erro
 	if rv != 0 {
 		return false, errors.New("Error Creating Vlan")
 	}
-	vlanName := fmt.Sprintf("br%u", cfg.VlanId)
+	vlanName := fmt.Sprintf("br%d", cfg.VlanId)
 	intf, err := net.InterfaceByName(vlanName)
 	if err != nil {
-		Logger.Info("Error Create Vlan, Unable to get vlanName", vlanName)
+		Logger.Err("1 Error Create Vlan, Unable to get vlanName", vlanName)
 		return false, errors.New("Error CreateVlan, Unable to get interface vlanName")
 	}
 	ifIdx := int32(intf.Index)
+	vlanEnt, _ := asicdClientMgr.VlanDB[cfg.VlanId]
+	vlanEnt.VlanName = vlanName
+	vlanEnt.OperState = "UP"
+	vlanEnt.AdminState = "UP"
+	vlanEnt.IfIndex = ifIdx
+	vlanEnt.IntfList = make(map[int32]bool)
+	for _, tagIntf := range cfg.IntfList {
+		intf, err := net.InterfaceByName(tagIntf)
+		if err != nil {
+			Logger.Err("Error Create Vlan, Unable to get vlanName", tagIntf)
+			continue
+		}
+		vlanEnt.IntfList[int32(intf.Index)] = true
+	}
+	vlanEnt.UntagIntfList = make(map[int32]bool)
+	for _, untagIntf := range cfg.UntagIntfList {
+		intf, err := net.InterfaceByName(untagIntf)
+		if err != nil {
+			Logger.Info("Error Create Vlan, Unable to get vlanName", untagIntf)
+			continue
+		}
+		vlanEnt.UntagIntfList[int32(intf.Index)] = true
+	}
+	asicdClientMgr.VlanDB[cfg.VlanId] = vlanEnt
+	asicdClientMgr.VlanList = append(asicdClientMgr.VlanList, cfg.VlanId)
 	asicdClientMgr.IfIdxToIfIdMap[ifIdx] = cfg.VlanId
 	asicdClientMgr.IfIdxToIfTypeMap[ifIdx] = asicdClntDefs.IfTypeVlan
 	return true, nil
@@ -155,7 +180,7 @@ func (asicdClientMgr *CPSAsicdClntMgr) DeleteVlan(cfg *objects.Vlan) (bool, erro
 	cpsAsicdMutex.Lock()
 	defer cpsAsicdMutex.Unlock()
 	Logger.Info("Calling CPS DeleteVlan:", cfg)
-	vlanName := fmt.Sprintf("br%u", cfg.VlanId)
+	vlanName := fmt.Sprintf("br%d", cfg.VlanId)
 	intf, err := net.InterfaceByName(vlanName)
 	if err != nil {
 		Logger.Info("Error Create Vlan, Unable to get vlanName", vlanName)
@@ -166,6 +191,16 @@ func (asicdClientMgr *CPSAsicdClntMgr) DeleteVlan(cfg *objects.Vlan) (bool, erro
 	if rv != 0 {
 		return false, errors.New("Error Delete Vlan")
 	}
+	delete(asicdClientMgr.VlanDB, cfg.VlanId)
+	var vlanList []int32
+	for idx := 0; idx < len(asicdClientMgr.VlanList); idx++ {
+		if cfg.VlanId != asicdClientMgr.VlanList[idx] {
+			vlanList = append(vlanList, cfg.VlanId)
+		}
+	}
+	asicdClientMgr.VlanList = asicdClientMgr.VlanList[:0]
+	asicdClientMgr.VlanList = nil
+	asicdClientMgr.VlanList = append(asicdClientMgr.VlanList, vlanList...)
 	delete(asicdClientMgr.IfIdxToIfIdMap, ifIdx)
 	delete(asicdClientMgr.IfIdxToIfTypeMap, ifIdx)
 	return true, nil
@@ -177,11 +212,51 @@ func (asicdClientMgr *CPSAsicdClntMgr) UpdateVlan(origCfg, newCfg *objects.Vlan,
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetBulkVlanState(fromIdx, count int) (*asicdClntDefs.VlanStateGetInfo, error) {
 	var retObj asicdClntDefs.VlanStateGetInfo
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
+	var idx, numEntries int
+	if (fromIdx > len(asicdClientMgr.VlanList)) || (fromIdx < 0) {
+		Logger.Err("Invalid fromIdx vlan argument in get bulk vlan state")
+		return nil, errors.New("Invalid fromIdx vlan argument in get bulk vlan state")
+	}
+	if count < 0 {
+		Logger.Err("Invalid count in get bulk port config")
+		return nil, errors.New("Invalid count int get bulk port config")
+	}
+	for idx = fromIdx; idx < len(asicdClientMgr.VlanList); idx++ {
+		if numEntries == count {
+			retObj.More = true
+			break
+		}
+		var vlanState objects.VlanState
+		vlanState.VlanId = asicdClientMgr.VlanList[idx]
+		vlanState.VlanName = asicdClientMgr.VlanDB[vlanState.VlanId].VlanName
+		vlanState.IfIndex = asicdClientMgr.VlanDB[vlanState.VlanId].IfIndex
+		vlanState.OperState = asicdClientMgr.VlanDB[vlanState.VlanId].OperState
+		retObj.VlanStateList = append(retObj.VlanStateList, &vlanState)
+		numEntries++
+	}
+	retObj.EndIdx = int32(idx)
+	retObj.Count = int32(numEntries)
+	if idx == len(asicdClientMgr.VlanDB) {
+		retObj.More = true
+	}
 	return &retObj, nil
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetVlanState(VlanId int32) (*objects.VlanState, error) {
-	return nil, nil
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
+	vlanEnt, exist := asicdClientMgr.VlanDB[VlanId]
+	if !exist {
+		return nil, errors.New("Invalid VlanId")
+	}
+	var retObj objects.VlanState
+	retObj.VlanId = VlanId
+	retObj.VlanName = vlanEnt.VlanName
+	retObj.IfIndex = vlanEnt.IfIndex
+	retObj.OperState = vlanEnt.OperState
+	return &retObj, nil
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) CreateIPv4Intf(cfg *objects.IPv4Intf) (bool, error) {

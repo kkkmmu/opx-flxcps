@@ -41,6 +41,7 @@ cps_api_return_code_t _add_ports_to_vlan(char *vlanName, int numOfTagPorts, char
 		printf("Vlan %s Untag Port %s\n", vlanName, untagPortNameList[idx]);
 		cps_api_object_attr_add(obj, DELL_IF_IF_INTERFACES_INTERFACE_UNTAGGED_PORTS, untagPortNameList[idx], strlen(untagPortNameList[idx])+1);
 	}
+	cps_api_object_attr_add_u32(obj,IF_INTERFACES_INTERFACE_ENABLED,true);
 
 	cps_api_transaction_params_t tr;
 	retVal = cps_api_transaction_init(&tr);
