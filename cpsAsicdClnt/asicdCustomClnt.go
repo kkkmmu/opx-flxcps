@@ -54,7 +54,7 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetIntfIdFromIfIndex(ifIndex int32) int {
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetIntfTypeFromIfIndex(ifIndex int32) int {
-	ifType, exist := asicdClientMgr.IfIdxToIfIdMap[ifIndex]
+	ifType, exist := asicdClientMgr.IfIdxToIfTypeMap[ifIndex]
 	if !exist {
 		return -1
 	}

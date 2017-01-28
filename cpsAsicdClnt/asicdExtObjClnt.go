@@ -349,6 +349,14 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetBulkIPv4IntfState(fromIdx, count int) 
 		ipv4IntfState.IfIndex = asicdClientMgr.IPv4IntfDB[intfRef].IfIdx
 		ipv4IntfState.IpAddr = asicdClientMgr.IPv4IntfDB[intfRef].IpAddr
 		ipv4IntfState.OperState = asicdClientMgr.IPv4IntfDB[intfRef].OperState
+		ipv4IntfState.L2IntfId = int32(asicdClientMgr.GetIntfIdFromIfIndex(ipv4IntfState.IfIndex))
+		ifType := asicdClientMgr.GetIntfTypeFromIfIndex(ipv4IntfState.IfIndex)
+		switch ifType {
+		case asicdClntDefs.IfTypePort:
+			ipv4IntfState.L2IntfType = "Port"
+		case asicdClntDefs.IfTypeVlan:
+			ipv4IntfState.L2IntfType = "Vlan"
+		}
 		retObj.IPv4IntfStateList = append(retObj.IPv4IntfStateList, &ipv4IntfState)
 		numEntries++
 	}
@@ -361,7 +369,26 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetBulkIPv4IntfState(fromIdx, count int) 
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetIPv4IntfState(IntfRef string) (*objects.IPv4IntfState, error) {
-	return nil, nil
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
+	ipv4Ent, exist := asicdClientMgr.IPv4IntfDB[IntfRef]
+	if !exist {
+		return nil, errors.New("Invalid IntfRef")
+	}
+	var retObj objects.IPv4IntfState
+	retObj.IntfRef = IntfRef
+	retObj.IfIndex = ipv4Ent.IfIdx
+	retObj.IpAddr = ipv4Ent.IpAddr
+	retObj.OperState = ipv4Ent.OperState
+	retObj.L2IntfId = int32(asicdClientMgr.GetIntfIdFromIfIndex(retObj.IfIndex))
+	ifType := asicdClientMgr.GetIntfTypeFromIfIndex(retObj.IfIndex)
+	switch ifType {
+	case asicdClntDefs.IfTypePort:
+		retObj.L2IntfType = "Port"
+	case asicdClntDefs.IfTypeVlan:
+		retObj.L2IntfType = "Vlan"
+	}
+	return &retObj, nil
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) CreatePort(cfg *objects.Port) (bool, error) {
