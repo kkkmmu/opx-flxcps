@@ -50,57 +50,39 @@ type Vlan struct {
 }
 
 type CPSAsicdClntMgr struct {
-	//NCtrlCh   chan bool
-	//ClientHdl *asicdServices.ASICDServicesClient
 	PortDB           []Port
 	IfIdxToIfIdMap   map[int32]int32
 	IfIdxToIfTypeMap map[int32]int32
 	VlanDB           map[int32]Vlan
 	VlanList         []int32
+	clntIntfs.BaseClntInitParams
+	notifyTermCh chan bool
 }
 
 var Logger logging.LoggerIntf
 
 func NewAsicdClntInit(clntInitParams *clntIntfs.BaseClntInitParams) (*CPSAsicdClntMgr, error) {
-	//var err error
 	cpsAsicdClntMgr := new(CPSAsicdClntMgr)
+	//Cache init params
+	cpsAsicdClntMgr.BaseClntInitParams = *clntInitParams
 	Logger = clntInitParams.Logger
 	cpsAsicdClntMgr.IfIdxToIfIdMap = make(map[int32]int32)
 	cpsAsicdClntMgr.IfIdxToIfTypeMap = make(map[int32]int32)
 	cpsAsicdClntMgr.VlanDB = make(map[int32]Vlan)
+	cpsAsicdClntMgr.notifyTermCh = make(chan bool)
 	err := cpsAsicdClntMgr.GetAllPortConfig()
 	if err != nil {
 		return nil, errors.New("Failed GetAllPortConfig()")
 	}
-	/*
-		err = cpsAsicdClntMgr.GetAsicdThriftClientHdl(clntInitParams)
-		if cpsAsicdClntMgr.ClientHdl == nil || err != nil {
-			Logger.Err("Unable Initialize Asicd Client", err)
-			return nil, errors.New(fmt.Sprintln("Unable Initialize Asicd Client", err))
-		}
-		if clntInitParams.NHdl != nil {
-			err = cpsAsicdClntMgr.InitCPSAsicdSubscriber(clntInitParams)
-			if err != nil {
-				Logger.Err("Unable Initialize Asicd Client", err)
-				cpsAsicdClntMgr.DeinitAsicdThriftClientHdl()
-				return nil, errors.New(fmt.Sprintln("Unable Initialize Asicd Client", err))
-			}
-		}
-	*/
+	err = cpsAsicdClntMgr.InitFSAsicdSubscriber(clntInitParams)
+	if err != nil {
+		Logger.Err("NewAsicdClntInit: Failed to initialize notification subscriber")
+	}
 	return cpsAsicdClntMgr, nil
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) AsicdClntDeinit() {
-	/*
-		if asicdClientMgr.ClientHdl != nil {
-			asicdClientMgr.DeinitAsicdThriftClientHdl()
-			asicdClientMgr.ClientHdl = nil
-		}
-		if asicdClientMgr.NCtrlCh != nil {
-			asicdClientMgr.DeinitCPSAsicdSubscriber()
-			asicdClientMgr.NCtrlCh = nil
-		}
-	*/
 	asicdClientMgr.IfIdxToIfIdMap = nil
 	asicdClientMgr.IfIdxToIfTypeMap = nil
+	asicdClientMgr.DeinitFSAsicdSubscriber()
 }

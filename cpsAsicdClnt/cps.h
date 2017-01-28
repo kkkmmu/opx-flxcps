@@ -29,25 +29,29 @@
 #include <stdint.h>
 #include <syslog.h>
 #include <net/if.h>
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <sonic/cps_api_key.h>
-#include <sonic/dell-interface.h>
-#include <sonic/dell-base-vlan.h>
-#include <sonic/dell-base-if-vlan.h>
+#include <sonic/dell-base-ip.h>
 #include <sonic/iana-if-type.h>
 #include <sonic/dell-base-if.h>
-#include <sonic/cps_class_map.h>
-#include <sonic/cps_api_object_key.h>
-#include <sonic/dell-base-ip.h>
-#include <sonic/dell-base-routing.h>
-#include <sonic/dell-base-if-phy.h>
-#include <sonic/dell-base-phy-interface.h>
 #include <sonic/iana-if-type.h>
+#include <sonic/cps_class_map.h>
+#include <sonic/cps_api_errors.h>
+#include <sonic/dell-interface.h>
+#include <sonic/dell-base-vlan.h>
+#include <sonic/cps_api_events.h>
+#include <sonic/cps_api_object.h>
+#include <sonic/ietf-interfaces.h>
+#include <sonic/dell-base-if-phy.h>
+#include <sonic/dell-base-routing.h>
+#include <sonic/dell-base-if-vlan.h>
+#include <sonic/cps_api_object_key.h>
+#include <sonic/dell-base-phy-interface.h>
+#include <sonic/cps_api_operation_tools.h>
 
-
-
+//Struct defs
 typedef struct portCfg_s {
 	char PortName[IF_NAMESIZE];
 } PortCfg_t;
@@ -56,6 +60,7 @@ char** MakeCharArray(int size);
 void SetArrayString(char **a, char *s, int n);
 void FreeCharArray(char **a, int size);
 
+//Config/State related APIs
 cps_api_return_code_t CPSCreateVlan(uint32_t vlanId, uint32_t numOfTagPorts, char **tagPorts, uint32_t numOfUntagPorts, char **untagPorts);
 cps_api_return_code_t CPSDeleteVlan(uint32_t vlanId);
 cps_api_return_code_t CPSCreateIPv4Intf(char *intfRef, char *ipAddr, uint32_t prefix);
@@ -66,5 +71,13 @@ cps_api_return_code_t CPSCreateIPv4Neighbor(char *nbrIp, char *intf, uint8_t mac
 cps_api_return_code_t CPSDeleteIPv4Neighbor(char *nbrIp, char *intf, uint8_t macAddr[6]);
 cps_api_return_code_t CPSGetAllPortCfg(PortCfg_t *portCfg, uint8_t *count);
 cps_api_return_code_t CPSSetPortAdminState(char *intfRef, uint8_t val);
+
+//Notification related APIs
+//C functions
+cps_api_return_code_t CPSRegisterNotificationHandler();
+void CPSUnregisterNotificationHandler();
+
+//Go functions
+void HandleLinkNotifications(int ifindex, int oper_state);
 
 #endif /* CPS_H */

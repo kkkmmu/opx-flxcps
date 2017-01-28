@@ -28,160 +28,49 @@ import (
 	"utils/clntUtils/clntIntfs"
 )
 
-type processMsg func(uint8, []byte) (clntIntfs.NotifyMsg, error)
+//#include "cps.h"
+import "C"
 
-var AsicdMsgMap map[uint8]processMsg = map[uint8]processMsg{
-	asicdClntDefs.NOTIFY_L2INTF_STATE_CHANGE:       processL2IntfStateNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV4_L3INTF_STATE_CHANGE:  processIPv4L3IntfStateNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV6_L3INTF_STATE_CHANGE:  processIPv6L3IntfStateNotifyMsg,
-	asicdClntDefs.NOTIFY_VLAN_CREATE:               processVlanNotifyMsg,
-	asicdClntDefs.NOTIFY_VLAN_DELETE:               processVlanNotifyMsg,
-	asicdClntDefs.NOTIFY_VLAN_UPDATE:               processVlanNotifyMsg,
-	asicdClntDefs.NOTIFY_LOGICAL_INTF_CREATE:       processLogicalIntfNotifyMsg,
-	asicdClntDefs.NOTIFY_LOGICAL_INTF_DELETE:       processLogicalIntfNotifyMsg,
-	asicdClntDefs.NOTIFY_LOGICAL_INTF_UPDATE:       processLogicalIntfNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV4INTF_CREATE:           processIPv4IntfNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV4INTF_DELETE:           processIPv4IntfNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV6INTF_CREATE:           processIPv6IntfNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV6INTF_DELETE:           processIPv6IntfNotifyMsg,
-	asicdClntDefs.NOTIFY_LAG_CREATE:                processLagNotifyMsg,
-	asicdClntDefs.NOTIFY_LAG_DELETE:                processLagNotifyMsg,
-	asicdClntDefs.NOTIFY_LAG_UPDATE:                processLagNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV4NBR_MAC_MOVE:          processIPv4NbrMacMoveNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV6NBR_MAC_MOVE:          processIPv6NbrMacMoveNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV4_ROUTE_CREATE_FAILURE: processIPv4RouteAddDelFailNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV4_ROUTE_DELETE_FAILURE: processIPv4RouteAddDelFailNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV6_ROUTE_CREATE_FAILURE: processIPv6RouteAddDelFailNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV6_ROUTE_DELETE_FAILURE: processIPv6RouteAddDelFailNotifyMsg,
-	asicdClntDefs.NOTIFY_VTEP_CREATE:               processVtepNotifyMsg,
-	asicdClntDefs.NOTIFY_VTEP_DELETE:               processVtepNotifyMsg,
-	//asicdClntDefs.NOTIFY_MPLSINTF_STATE_CHANGE:         processMplsIntfStateChangeNotifyMsg,
-	//asicdClntDefs.NOTIFY_MPLSINTF_CREATE:               processMplsIntfNotifyMsg,
-	//asicdClntDefs.NOTIFY_MPLSINTF_DELETE:               processMplsIntfNotifyMsg,
-	asicdClntDefs.NOTIFY_PORT_CONFIG_MODE_CHANGE:       processPortConfigModeChgNotifyMsg,
-	asicdClntDefs.NOTIFY_PORT_ATTR_CHANGE:              processPortAttrChangeNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV4VIRTUAL_INTF_CREATE:       processIPv4VirutalIntfNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV4VIRTUAL_INTF_DELETE:       processIPv4VirutalIntfNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV6VIRTUAL_INTF_CREATE:       processIPv6VirutalIntfNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV6VIRTUAL_INTF_DELETE:       processIPv6VirutalIntfNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV4_VIRTUALINTF_STATE_CHANGE: processIPv4VirtualIntfStateNotifyMsg,
-	asicdClntDefs.NOTIFY_IPV6_VIRTUALINTF_STATE_CHANGE: processIPv6VirtualIntfStateNotifyMsg,
-}
-
-func processL2IntfStateNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
-
-func processIPv4L3IntfStateNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
-
-func processIPv6L3IntfStateNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
-
-func processIPv4VirtualIntfStateNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
-
-func processIPv6VirtualIntfStateNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
-
-func processVlanNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
-
-func processLogicalIntfNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-
-}
-
-func processIPv4IntfNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
-
-func processIPv6IntfNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
-
-func processIPv4VirutalIntfNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
-
-func processIPv6VirutalIntfNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
-
-func processLagNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
-
-func processIPv4NbrMacMoveNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
-
-func processIPv6NbrMacMoveNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
-
-func processIPv4RouteAddDelFailNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	//TODO: Discuss this with Madhavi
-	return msg, nil
-}
-
-func processIPv6RouteAddDelFailNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	//TODO: Discuss this with Madhavi
-	return msg, nil
-}
-
-func processVtepNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-
-}
-
-func processMplsIntfStateChangeNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	//TODO: Need to be done along with MPLS changes
-	return msg, nil
-}
-
-func processMplsIntfNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	//TODO: Need to be done along with MPLS changes
-	return msg, nil
-}
-
-func processPortConfigModeChgNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
-
-func processPortAttrChangeNotifyMsg(rxMsgType uint8, rxMsg []byte) (clntIntfs.NotifyMsg, error) {
-	var msg clntIntfs.NotifyMsg
-	return msg, nil
-}
+var nHdl clntIntfs.NotificationHdl
 
 func (asicdClientMgr *CPSAsicdClntMgr) InitFSAsicdSubscriber(clntInitParams *clntIntfs.BaseClntInitParams) error {
+	//Init notification hdl
+	nHdl = clntInitParams.NHdl
+	//Register with CPS to receive notifications
+	ret := int(C.CPSRegisterNotificationHandler())
+	if ret < 0 {
+		Logger.Err("InitFSAsicdSubscriber failed")
+	}
 	return nil
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) DeinitFSAsicdSubscriber() {
+	//Deregister notification handler
+	C.CPSUnregisterNotificationHandler()
+}
+
+//export HandleLinkNotifications
+func HandleLinkNotifications(ifIndex, operState C.int) {
+	var ifState uint8
+
+	switch operState {
+	case C.IF_INTERFACES_STATE_INTERFACE_ADMIN_STATUS_UP:
+		ifState = asicdClntDefs.INTF_STATE_UP
+
+	case C.IF_INTERFACES_STATE_INTERFACE_ADMIN_STATUS_DOWN:
+		ifState = asicdClntDefs.INTF_STATE_DOWN
+
+	default:
+		Logger.Err("Unrecognized operstate value received")
+		return
+	}
+	msg := asicdClntDefs.L2IntfStateNotifyMsg{
+		MsgType: asicdClntDefs.NOTIFY_L2INTF_STATE_CHANGE,
+		IfIndex: int32(ifIndex),
+		IfState: ifState,
+	}
+	Logger.Debug("Sending port state change notification for : ", ifIndex, ifState)
+	if nHdl == nil {
+		nHdl.ProcessNotification(msg)
+	}
 }
