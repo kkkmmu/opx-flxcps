@@ -242,6 +242,8 @@ func (asicdClientMgr *CPSAsicdClntMgr) CreatePort(cfg *objects.Port) (bool, erro
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) UpdatePort(origCfg, newCfg *objects.Port, attrset []bool, op []*objects.PatchOpInfo) (bool, error) {
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
 	var mask uint32
 	var idx int
 
@@ -336,7 +338,7 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetBulkPort(fromIdx, count int) (*asicdCl
 		portCfg.IntfRef = asicdClientMgr.PortDB[idx].IntfRef
 		portCfg.IfIndex = asicdClientMgr.PortDB[idx].IfIndex
 		portCfg.MacAddr = asicdClientMgr.PortDB[idx].MacAddr
-		portCfg.AdminState = asicdClientMgr.PortDB[idx].OperState
+		portCfg.AdminState = asicdClientMgr.PortDB[idx].AdminState
 		retObj.PortList = append(retObj.PortList, &portCfg)
 		numEntries++
 	}
@@ -348,16 +350,81 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetBulkPort(fromIdx, count int) (*asicdCl
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetPort(IntfRef string) (*objects.Port, error) {
-	return nil, nil
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
+	var flag bool
+	var idx int
+	for idx = 0; idx < len(asicdClientMgr.PortDB); idx++ {
+		if asicdClientMgr.PortDB[idx].IntfRef == IntfRef {
+			flag = true
+			break
+		}
+	}
+	if flag == false {
+		return nil, errors.New("Invalid IntfRef")
+	}
+	var retObj objects.Port
+	retObj.IntfRef = asicdClientMgr.PortDB[idx].IntfRef
+	retObj.IfIndex = asicdClientMgr.PortDB[idx].IfIndex
+	retObj.MacAddr = asicdClientMgr.PortDB[idx].MacAddr
+	retObj.AdminState = asicdClientMgr.PortDB[idx].AdminState
+	return &retObj, nil
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetBulkPortState(fromIdx, count int) (*asicdClntDefs.PortStateGetInfo, error) {
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
 	var retObj asicdClntDefs.PortStateGetInfo
+	var idx, numEntries int
+	if (fromIdx > len(asicdClientMgr.PortDB)) || (fromIdx < 0) {
+		Logger.Err("Invalid fromIdx port argument in get bulk port config")
+		return nil, errors.New("Invalid fromIdx port argument in get bulk port config")
+	}
+	if count < 0 {
+		Logger.Err("Invalid count in get bulk port config")
+		return nil, errors.New("Invalid count int get bulk port config")
+	}
+	for idx = fromIdx; idx < len(asicdClientMgr.PortDB); idx++ {
+		if numEntries == count {
+			retObj.More = true
+			break
+		}
+		var portState objects.PortState
+		portState.IntfRef = asicdClientMgr.PortDB[idx].IntfRef
+		portState.IfIndex = asicdClientMgr.PortDB[idx].IfIndex
+		portState.Name = asicdClientMgr.PortDB[idx].IntfRef
+		portState.OperState = asicdClientMgr.PortDB[idx].OperState
+		retObj.PortStateList = append(retObj.PortStateList, &portState)
+		numEntries++
+	}
+	retObj.EndIdx = int32(idx)
+	if idx == len(asicdClientMgr.PortDB) {
+		retObj.More = true
+	}
+	retObj.Count = int32(numEntries)
 	return &retObj, nil
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetPortState(IntfRef string) (*objects.PortState, error) {
-	return nil, nil
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
+	var flag bool
+	var idx int
+	for idx = 0; idx < len(asicdClientMgr.PortDB); idx++ {
+		if asicdClientMgr.PortDB[idx].IntfRef == IntfRef {
+			flag = true
+			break
+		}
+	}
+	if flag == false {
+		return nil, errors.New("Invalid IntfRef")
+	}
+	var retObj objects.PortState
+	retObj.IntfRef = asicdClientMgr.PortDB[idx].IntfRef
+	retObj.IfIndex = asicdClientMgr.PortDB[idx].IfIndex
+	retObj.Name = asicdClientMgr.PortDB[idx].IntfRef
+	retObj.OperState = asicdClientMgr.PortDB[idx].OperState
+	return &retObj, nil
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetBulkMacTableEntryState(fromIndex int, count int) (*asicdClntDefs.MacTableEntryStateGetInfo, error) {
