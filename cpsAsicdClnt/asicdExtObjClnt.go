@@ -139,6 +139,15 @@ func (asicdClientMgr *CPSAsicdClntMgr) CreateVlan(cfg *objects.Vlan) (bool, erro
 	if rv != 0 {
 		return false, errors.New("Error Creating Vlan")
 	}
+	vlanName := fmt.Sprintf("br%u", cfg.VlanId)
+	intf, err := net.InterfaceByName(vlanName)
+	if err != nil {
+		Logger.Info("Error Create Vlan, Unable to get vlanName", vlanName)
+		return false, errors.New("Error CreateVlan, Unable to get interface vlanName")
+	}
+	ifIdx := int32(intf.Index)
+	asicdClientMgr.IfIdxToIfIdMap[ifIdx] = cfg.VlanId
+	asicdClientMgr.IfIdxToIfTypeMap[ifIdx] = asicdClntDefs.IfTypeVlan
 	return true, nil
 }
 
@@ -146,10 +155,19 @@ func (asicdClientMgr *CPSAsicdClntMgr) DeleteVlan(cfg *objects.Vlan) (bool, erro
 	cpsAsicdMutex.Lock()
 	defer cpsAsicdMutex.Unlock()
 	Logger.Info("Calling CPS DeleteVlan:", cfg)
+	vlanName := fmt.Sprintf("br%u", cfg.VlanId)
+	intf, err := net.InterfaceByName(vlanName)
+	if err != nil {
+		Logger.Info("Error Create Vlan, Unable to get vlanName", vlanName)
+		return false, errors.New("Error CreateVlan, Unable to get interface vlanName")
+	}
+	ifIdx := int32(intf.Index)
 	rv := int(C.CPSDeleteVlan(C.uint32_t(cfg.VlanId)))
 	if rv != 0 {
 		return false, errors.New("Error Delete Vlan")
 	}
+	delete(asicdClientMgr.IfIdxToIfIdMap, ifIdx)
+	delete(asicdClientMgr.IfIdxToIfTypeMap, ifIdx)
 	return true, nil
 }
 
@@ -224,6 +242,71 @@ func (asicdClientMgr *CPSAsicdClntMgr) CreatePort(cfg *objects.Port) (bool, erro
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) UpdatePort(origCfg, newCfg *objects.Port, attrset []bool, op []*objects.PatchOpInfo) (bool, error) {
+	var mask uint32
+	var idx int
+
+	for idx, val := range attrset {
+		if val {
+			switch idx {
+			case 0:
+				//Object Key IntfRef
+			case 1:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_IF_INDEX
+			case 2:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_DESCRIPTION
+			case 3:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_PHY_INTF_TYPE
+			case 4:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_ADMIN_STATE
+			case 5:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_MAC_ADDR
+			case 6:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_SPEED
+			case 7:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_DUPLEX
+			case 8:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_AUTONEG
+			case 9:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_MEDIA_TYPE
+			case 10:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_MTU
+			case 11:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_BREAK_OUT_MODE
+			case 12:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_LOOPBACK_MODE
+			case 13:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_ENABLE_FEC
+			case 14:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_PRBS_TX_ENABLE
+			case 15:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_PRBS_RX_ENABLE
+			case 16:
+				mask |= asicdClntDefs.PORT_UPDATE_ATTR_PRBS_POLYNOMIAL
+			}
+		}
+	}
+
+	for idx = 0; idx < len(asicdClientMgr.PortDB); idx++ {
+		if asicdClientMgr.PortDB[idx].IntfRef == newCfg.IntfRef {
+			break
+		}
+	}
+	if idx == len(asicdClientMgr.PortDB) {
+		return false, errors.New(fmt.Sprintln("Error Invalid IntfRef", newCfg.IntfRef))
+	}
+
+	if (mask & asicdClntDefs.PORT_UPDATE_ATTR_ADMIN_STATE) == asicdClntDefs.PORT_UPDATE_ATTR_ADMIN_STATE {
+		var val uint8
+		if newCfg.AdminState == "UP" {
+			val = 1
+		}
+		rv := int(C.CPSSetPortAdminState(C.CString(newCfg.IntfRef), C.uint8_t(val)))
+		if rv != 0 {
+			return false, errors.New("Error Setting Port AdminState")
+		}
+		asicdClientMgr.PortDB[idx].AdminState = newCfg.AdminState
+	}
+
 	return true, nil
 }
 
@@ -251,6 +334,9 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetBulkPort(fromIdx, count int) (*asicdCl
 		}
 		var portCfg objects.Port
 		portCfg.IntfRef = asicdClientMgr.PortDB[idx].IntfRef
+		portCfg.IfIndex = asicdClientMgr.PortDB[idx].IfIndex
+		portCfg.MacAddr = asicdClientMgr.PortDB[idx].MacAddr
+		portCfg.AdminState = asicdClientMgr.PortDB[idx].OperState
 		retObj.PortList = append(retObj.PortList, &portCfg)
 		numEntries++
 	}

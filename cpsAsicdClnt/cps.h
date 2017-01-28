@@ -65,5 +65,6 @@ cps_api_return_code_t CPSDeleteIPv4Route(char *destNw, uint32_t prefix, char *nh
 cps_api_return_code_t CPSCreateIPv4Neighbor(char *nbrIp, char *intf, uint8_t macAddr[6]);
 cps_api_return_code_t CPSDeleteIPv4Neighbor(char *nbrIp, char *intf, uint8_t macAddr[6]);
 cps_api_return_code_t CPSGetAllPortCfg(PortCfg_t *portCfg, uint8_t *count);
+cps_api_return_code_t CPSSetPortAdminState(char *intfRef, uint8_t val);
 
 #endif /* CPS_H */

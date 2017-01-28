@@ -34,6 +34,7 @@ type Port struct {
 	IfIndex     int32
 	Description string
 	AdminState  string
+	OperState	string
 	MacAddr     string
 	Speed       int32
 	Duplex      string
@@ -43,6 +44,8 @@ type CPSAsicdClntMgr struct {
 	//NCtrlCh   chan bool
 	//ClientHdl *asicdServices.ASICDServicesClient
 	PortDB []Port
+	IfIdxToIfIdMap map[int32]int32
+	IfIdxToIfTypeMap map[int32]int32
 }
 
 var Logger logging.LoggerIntf
@@ -51,6 +54,8 @@ func NewAsicdClntInit(clntInitParams *clntIntfs.BaseClntInitParams) (*CPSAsicdCl
 	//var err error
 	cpsAsicdClntMgr := new(CPSAsicdClntMgr)
 	Logger = clntInitParams.Logger
+	cpsAsicdClntMgr.IfIdxToIfIdMap = make(map[int32]int32)
+	cpsAsicdClntMgr.IfIdxToIfTypeMap = make(map[int32]int32)
 	err := cpsAsicdClntMgr.GetAllPortConfig()
 	if err != nil {
 		return nil, errors.New("Failed GetAllPortConfig()")
@@ -84,4 +89,6 @@ func (asicdClientMgr *CPSAsicdClntMgr) AsicdClntDeinit() {
 			asicdClientMgr.NCtrlCh = nil
 		}
 	*/
+	asicdClientMgr.IfIdxToIfIdMap = nil
+	asicdClientMgr.IfIdxToIfTypeMap = nil
 }

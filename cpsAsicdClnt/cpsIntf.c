@@ -60,3 +60,41 @@ cps_api_return_code_t CPSGetAllPortCfg(PortCfg_t *portCfg, uint8_t *count) {
 	return retVal;
 
 }
+
+cps_api_return_code_t CPSSetPortAdminState(char *intfRef, uint8_t val) {
+	cps_api_return_code_t retVal = cps_api_ret_code_OK;
+    	cps_api_object_t obj = cps_api_object_create();
+
+    	cps_api_key_from_attr_with_qual(cps_api_object_key(obj),
+        	DELL_BASE_IF_CMN_IF_INTERFACES_INTERFACE_OBJ, cps_api_qualifier_TARGET);
+
+    	cps_api_set_key_data(obj,IF_INTERFACES_INTERFACE_NAME,cps_api_object_ATTR_T_BIN,
+               intfRef,strlen(intfRef)+1);
+
+    	cps_api_object_attr_add_u32(obj,IF_INTERFACES_INTERFACE_ENABLED, (uint32_t)val);
+
+        cps_api_transaction_params_t tr;
+        retVal = cps_api_transaction_init(&tr);
+        if (retVal != cps_api_ret_code_OK) {
+                printf("Failed cps_api_transaction_init() retVal: %d\n", retVal);
+                return retVal;
+        }
+
+        retVal = cps_api_set(&tr, obj);
+        if (retVal != cps_api_ret_code_OK) {
+                cps_api_transaction_close(&tr);
+                printf("Failed cps_api_set() retVal: %d\n", retVal);
+                return retVal;
+        }
+
+        retVal = cps_api_commit(&tr);
+        if (retVal != cps_api_ret_code_OK) {
+                cps_api_transaction_close(&tr);
+                printf("Failed cps_api_commit() retVal: %d\n", retVal);
+                return retVal;
+        }
+
+        cps_api_transaction_close(&tr);
+	return retVal;
+}
+

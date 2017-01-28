@@ -26,6 +26,8 @@ package cpsAsicdClnt
 import (
 	"models/objects"
 	"errors"
+	"net"
+	"utils/clntUtils/clntDefs/asicdClntDefs"
 )
 
 /*
@@ -40,19 +42,45 @@ import "C"
 type PortCfg C.struct_portCfg_s
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetSysRsvdVlan() int {
-	return 0
+	return -1
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetIntfIdFromIfIndex(ifIndex int32) int {
-	return 0
+	id, exist := asicdClientMgr.IfIdxToIfIdMap[ifIndex]
+	if !exist {
+		return -1
+	}
+	return int(id)
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetIntfTypeFromIfIndex(ifIndex int32) int {
-	return 0
+	ifType, exist := asicdClientMgr.IfIdxToIfIdMap[ifIndex]
+	if !exist {
+		return -1
+	}
+	return int(ifType)
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetIfIndexFromIntfIdAndIntfType(ifId int, ifType int) int32 {
-	return 0
+	switch ifType {
+	case asicdClntDefs.IfTypePort:
+		for ifIdx, id := range asicdClientMgr.IfIdxToIfIdMap {
+			if id == int32(ifId) {
+				if asicdClientMgr.IfIdxToIfTypeMap[ifIdx] == asicdClntDefs.IfTypePort {
+					return ifIdx
+				}
+			}
+		}
+	case asicdClntDefs.IfTypeVlan:
+		for ifIdx, id := range asicdClientMgr.IfIdxToIfIdMap {
+			if id == int32(ifId) {
+				if asicdClientMgr.IfIdxToIfTypeMap[ifIdx] == asicdClntDefs.IfTypeVlan {
+					return ifIdx
+				}
+			}
+		}
+	}
+	return int32(-1)
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetMinSysPort() int {
@@ -81,8 +109,22 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetAllPortConfig() error {
 			var port Port
 			Logger.Info("Port IfName:", portName, idx)
 			port.IntfRef = portName
+			intf, err := net.InterfaceByName(portName)
+			if err != nil {
+				Logger.Err("Error getting InterfaceByName", err)
+				continue
+			}
+			port.MacAddr = intf.HardwareAddr.String()
+			port.IfIndex = int32(intf.Index)
+			if (intf.Flags & net.FlagUp) != 0 {
+				port.OperState = "UP"
+			} else {
+				port.OperState = "DOWN"
+			}
 			asicdClientMgr.PortDB = append(asicdClientMgr.PortDB, port)
 			portMap[portName] = true
+			asicdClientMgr.IfIdxToIfIdMap[port.IfIndex] = port.IfIndex
+			asicdClientMgr.IfIdxToIfTypeMap[port.IfIndex] = asicdClntDefs.IfTypePort
 		}
 	}
 	return nil
