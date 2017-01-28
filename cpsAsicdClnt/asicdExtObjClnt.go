@@ -276,6 +276,18 @@ func (asicdClientMgr *CPSAsicdClntMgr) CreateIPv4Intf(cfg *objects.IPv4Intf) (bo
 	if rv != 0 {
 		return false, errors.New("Error Creating IPv4 Intf")
 	}
+	intf, err := net.InterfaceByName(cfg.IntfRef)
+	if err != nil {
+		Logger.Info("Error Create IPv4Intf, Unable to get interface details", cfg.IntfRef)
+		return false, errors.New(fmt.Sprintln("Error Create IPv4Intf, Unable to get interface details", cfg.IntfRef))
+	}
+	ipv4IntfEnt, _ := asicdClientMgr.IPv4IntfDB[cfg.IntfRef]
+	ipv4IntfEnt.IpAddr = cfg.IpAddr
+	ipv4IntfEnt.AdminState = "UP"
+	ipv4IntfEnt.IfIdx = int32(intf.Index)
+	ipv4IntfEnt.OperState = "UP"
+	asicdClientMgr.IPv4IntfDB[cfg.IntfRef] = ipv4IntfEnt
+	asicdClientMgr.IPv4IntfList = append(asicdClientMgr.IPv4IntfList, cfg.IntfRef)
 	return true, nil
 }
 
@@ -296,6 +308,16 @@ func (asicdClientMgr *CPSAsicdClntMgr) DeleteIPv4Intf(cfg *objects.IPv4Intf) (bo
 	if rv != 0 {
 		return false, errors.New("Error Creating IPv4 Intf")
 	}
+	delete(asicdClientMgr.IPv4IntfDB, cfg.IntfRef)
+	var ipv4IntfList []string
+	for idx := 0; idx < len(asicdClientMgr.IPv4IntfList); idx++ {
+		if asicdClientMgr.IPv4IntfList[idx] != cfg.IntfRef {
+			ipv4IntfList = append(ipv4IntfList, asicdClientMgr.IPv4IntfList[idx])
+		}
+	}
+	asicdClientMgr.IPv4IntfList = asicdClientMgr.IPv4IntfList[:0]
+	asicdClientMgr.IPv4IntfList = nil
+	asicdClientMgr.IPv4IntfList = append(asicdClientMgr.IPv4IntfList, ipv4IntfList...)
 	return true, nil
 }
 
@@ -305,6 +327,36 @@ func (asicdClientMgr *CPSAsicdClntMgr) UpdateIPv4Intf(origCfg, newCfg *objects.I
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetBulkIPv4IntfState(fromIdx, count int) (*asicdClntDefs.IPv4IntfStateGetInfo, error) {
 	var retObj asicdClntDefs.IPv4IntfStateGetInfo
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
+	var idx, numEntries int
+	if (fromIdx > len(asicdClientMgr.IPv4IntfList)) || (fromIdx < 0) {
+		Logger.Err("Invalid fromIdx ipv4Intf argument in get bulk ipv4Intf state")
+		return nil, errors.New("Invalid fromIdx ipv4Intf argument in get bulk ipv4Intf state")
+	}
+	if count < 0 {
+		Logger.Err("Invalid count in get bulk IPv4IntfList")
+		return nil, errors.New("Invalid count int get bulk IPv4IntList")
+	}
+	for idx = fromIdx; idx < len(asicdClientMgr.IPv4IntfList); idx++ {
+		if numEntries == count {
+			retObj.More = true
+			break
+		}
+		var ipv4IntfState objects.IPv4IntfState
+		intfRef := asicdClientMgr.IPv4IntfList[idx]
+		ipv4IntfState.IntfRef = intfRef
+		ipv4IntfState.IfIndex = asicdClientMgr.IPv4IntfDB[intfRef].IfIdx
+		ipv4IntfState.IpAddr = asicdClientMgr.IPv4IntfDB[intfRef].IpAddr
+		ipv4IntfState.OperState = asicdClientMgr.IPv4IntfDB[intfRef].OperState
+		retObj.IPv4IntfStateList = append(retObj.IPv4IntfStateList, &ipv4IntfState)
+		numEntries++
+	}
+	retObj.EndIdx = int32(idx)
+	retObj.Count = int32(numEntries)
+	if idx == len(asicdClientMgr.IPv4IntfList) {
+		retObj.More = true
+	}
 	return &retObj, nil
 }
 
@@ -382,6 +434,7 @@ func (asicdClientMgr *CPSAsicdClntMgr) UpdatePort(origCfg, newCfg *objects.Port,
 			return false, errors.New("Error Setting Port AdminState")
 		}
 		asicdClientMgr.PortDB[idx].AdminState = newCfg.AdminState
+		asicdClientMgr.PortDB[idx].OperState = newCfg.AdminState
 	}
 
 	return true, nil

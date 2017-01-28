@@ -49,12 +49,21 @@ type Vlan struct {
 	UntagIntfList map[int32]bool
 }
 
+type IPv4Intf struct {
+       IpAddr     string
+       AdminState string
+       IfIdx      int32
+       OperState  string
+}
+
 type CPSAsicdClntMgr struct {
 	PortDB           []Port
 	IfIdxToIfIdMap   map[int32]int32
 	IfIdxToIfTypeMap map[int32]int32
 	VlanDB           map[int32]Vlan
 	VlanList         []int32
+        IPv4IntfDB       map[string]IPv4Intf
+        IPv4IntfList    []string
 	clntIntfs.BaseClntInitParams
 	notifyTermCh chan bool
 }
@@ -69,6 +78,7 @@ func NewAsicdClntInit(clntInitParams *clntIntfs.BaseClntInitParams) (*CPSAsicdCl
 	cpsAsicdClntMgr.IfIdxToIfIdMap = make(map[int32]int32)
 	cpsAsicdClntMgr.IfIdxToIfTypeMap = make(map[int32]int32)
 	cpsAsicdClntMgr.VlanDB = make(map[int32]Vlan)
+        cpsAsicdClntMgr.IPv4IntfDB = make(map[string]IPv4Intf)
 	cpsAsicdClntMgr.notifyTermCh = make(chan bool)
 	err := cpsAsicdClntMgr.GetAllPortConfig()
 	if err != nil {

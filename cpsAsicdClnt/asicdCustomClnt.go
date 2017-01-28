@@ -118,8 +118,10 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetAllPortConfig() error {
 			port.IfIndex = int32(intf.Index)
 			if (intf.Flags & net.FlagUp) != 0 {
 				port.OperState = "UP"
+				port.AdminState = "UP"
 			} else {
 				port.OperState = "DOWN"
+				port.AdminState = "DOWN"
 			}
 			asicdClientMgr.PortDB = append(asicdClientMgr.PortDB, port)
 			portMap[portName] = true
