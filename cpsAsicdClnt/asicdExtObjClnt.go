@@ -24,12 +24,12 @@
 package cpsAsicdClnt
 
 import (
-	"models/objects"
-	"utils/clntUtils/clntDefs/asicdClntDefs"
 	"errors"
 	"fmt"
+	"models/objects"
 	"net"
 	"sync"
+	"utils/clntUtils/clntDefs/asicdClntDefs"
 )
 
 /*

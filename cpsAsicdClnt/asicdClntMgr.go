@@ -34,29 +34,29 @@ type Port struct {
 	IfIndex     int32
 	Description string
 	AdminState  string
-	OperState	string
+	OperState   string
 	MacAddr     string
 	Speed       int32
 	Duplex      string
 }
 
 type Vlan struct {
-	VlanName string
-	OperState string
-	IfIndex int32
-	AdminState string
-	IntfList map[int32]bool
+	VlanName      string
+	OperState     string
+	IfIndex       int32
+	AdminState    string
+	IntfList      map[int32]bool
 	UntagIntfList map[int32]bool
 }
 
 type CPSAsicdClntMgr struct {
 	//NCtrlCh   chan bool
 	//ClientHdl *asicdServices.ASICDServicesClient
-	PortDB []Port
-	IfIdxToIfIdMap map[int32]int32
+	PortDB           []Port
+	IfIdxToIfIdMap   map[int32]int32
 	IfIdxToIfTypeMap map[int32]int32
-	VlanDB map[int32]Vlan
-	VlanList []int32
+	VlanDB           map[int32]Vlan
+	VlanList         []int32
 }
 
 var Logger logging.LoggerIntf

@@ -24,8 +24,8 @@
 package cpsAsicdClnt
 
 import (
-	"models/objects"
 	"errors"
+	"models/objects"
 	"net"
 	"utils/clntUtils/clntDefs/asicdClntDefs"
 )
