@@ -122,6 +122,7 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetAsicSummaryState(ModuleId uint8) (*obj
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) CreateVlan(cfg *objects.Vlan) (bool, error) {
+	var tagPortIfIdx, untagPortIfIdx []int32
 	cpsAsicdMutex.Lock()
 	defer cpsAsicdMutex.Unlock()
 	Logger.Info("Calling CPS CreateVlan:", cfg)
@@ -159,6 +160,7 @@ func (asicdClientMgr *CPSAsicdClntMgr) CreateVlan(cfg *objects.Vlan) (bool, erro
 			continue
 		}
 		vlanEnt.IntfList[int32(intf.Index)] = true
+		tagPortIfIdx = append(tagPortIfIdx, int32(intf.Index))
 	}
 	vlanEnt.UntagIntfList = make(map[int32]bool)
 	for _, untagIntf := range cfg.UntagIntfList {
@@ -168,15 +170,28 @@ func (asicdClientMgr *CPSAsicdClntMgr) CreateVlan(cfg *objects.Vlan) (bool, erro
 			continue
 		}
 		vlanEnt.UntagIntfList[int32(intf.Index)] = true
+		untagPortIfIdx = append(untagPortIfIdx, int32(intf.Index))
 	}
 	asicdClientMgr.VlanDB[cfg.VlanId] = vlanEnt
 	asicdClientMgr.VlanList = append(asicdClientMgr.VlanList, cfg.VlanId)
 	asicdClientMgr.IfIdxToIfIdMap[ifIdx] = cfg.VlanId
 	asicdClientMgr.IfIdxToIfTypeMap[ifIdx] = asicdClntDefs.IfTypeVlan
+	//Notify vlan interface creation
+	if asicdClientMgr.BaseClntInitParams.NHdl != nil {
+	asicdClientMgr.BaseClntInitParams.NHdl.ProcessNotification(asicdClntDefs.VlanNotifyMsg{
+		MsgType: asicdClntDefs.NOTIFY_VLAN_CREATE,
+		VlanId: uint16(cfg.VlanId),
+		VlanIfIndex: ifIdx,
+		VlanName: vlanName,
+		TagPorts: tagPortIfIdx,
+		UntagPorts: untagPortIfIdx,
+	})
+	}
 	return true, nil
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) DeleteVlan(cfg *objects.Vlan) (bool, error) {
+	var tagPorts, untagPorts []int32
 	cpsAsicdMutex.Lock()
 	defer cpsAsicdMutex.Unlock()
 	Logger.Info("Calling CPS DeleteVlan:", cfg)
@@ -203,6 +218,34 @@ func (asicdClientMgr *CPSAsicdClntMgr) DeleteVlan(cfg *objects.Vlan) (bool, erro
 	asicdClientMgr.VlanList = append(asicdClientMgr.VlanList, vlanList...)
 	delete(asicdClientMgr.IfIdxToIfIdMap, ifIdx)
 	delete(asicdClientMgr.IfIdxToIfTypeMap, ifIdx)
+
+	//Notify vlan interface deletion 
+	if asicdClientMgr.BaseClntInitParams.NHdl != nil {
+	for _, tagIntf := range cfg.IntfList {
+		intf, err := net.InterfaceByName(tagIntf)
+		if err != nil {
+			Logger.Err("Error Create Vlan, Unable to get vlanName", tagIntf)
+			continue
+		}
+		tagPorts = append(tagPorts, int32(intf.Index))
+	}
+	for _, untagIntf := range cfg.UntagIntfList {
+		intf, err := net.InterfaceByName(untagIntf)
+		if err != nil {
+			Logger.Info("Error Create Vlan, Unable to get vlanName", untagIntf)
+			continue
+		}
+		untagPorts = append(untagPorts, int32(intf.Index))
+	}
+	asicdClientMgr.BaseClntInitParams.NHdl.ProcessNotification(asicdClntDefs.VlanNotifyMsg{
+		MsgType: asicdClntDefs.NOTIFY_VLAN_DELETE,
+		VlanId: uint16(cfg.VlanId),
+		VlanIfIndex: ifIdx,
+		VlanName: vlanName,
+		TagPorts: tagPorts,
+		UntagPorts: untagPorts,
+	})
+	}
 	return true, nil
 }
 
@@ -288,6 +331,23 @@ func (asicdClientMgr *CPSAsicdClntMgr) CreateIPv4Intf(cfg *objects.IPv4Intf) (bo
 	ipv4IntfEnt.OperState = "UP"
 	asicdClientMgr.IPv4IntfDB[cfg.IntfRef] = ipv4IntfEnt
 	asicdClientMgr.IPv4IntfList = append(asicdClientMgr.IPv4IntfList, cfg.IntfRef)
+	if asicdClientMgr.BaseClntInitParams.NHdl != nil {
+	Logger.Debug("Sending create/state notifications for IPv4Intf")
+	//Notify ip interface creation
+	asicdClientMgr.BaseClntInitParams.NHdl.ProcessNotification(asicdClntDefs.IPv4IntfNotifyMsg{
+		MsgType: asicdClntDefs.NOTIFY_IPV4INTF_CREATE,
+		IpAddr: cfg.IpAddr,
+		IfIndex: int32(intf.Index),
+		IntfRef: cfg.IntfRef,
+	})
+	//Notify ip interface state UP
+	asicdClientMgr.BaseClntInitParams.NHdl.ProcessNotification(asicdClntDefs.IPv4L3IntfStateNotifyMsg{
+		MsgType: asicdClntDefs.NOTIFY_IPV4_L3INTF_STATE_CHANGE,
+		IpAddr: cfg.IpAddr,
+		IfIndex: int32(intf.Index),
+		IfState: uint8(asicdClntDefs.INTF_STATE_UP),
+	})
+	}
 	return true, nil
 }
 
@@ -318,6 +378,27 @@ func (asicdClientMgr *CPSAsicdClntMgr) DeleteIPv4Intf(cfg *objects.IPv4Intf) (bo
 	asicdClientMgr.IPv4IntfList = asicdClientMgr.IPv4IntfList[:0]
 	asicdClientMgr.IPv4IntfList = nil
 	asicdClientMgr.IPv4IntfList = append(asicdClientMgr.IPv4IntfList, ipv4IntfList...)
+	if asicdClientMgr.BaseClntInitParams.NHdl != nil {
+	intf, err := net.InterfaceByName(cfg.IntfRef)
+	if err != nil {
+		Logger.Info("Error Delete IPv4Intf, Unable to get interface details", cfg.IntfRef)
+		return false, errors.New(fmt.Sprintln("Error Delete IPv4Intf, Unable to get interface details", cfg.IntfRef))
+	}
+	//Notify ip interface state UP
+	asicdClientMgr.BaseClntInitParams.NHdl.ProcessNotification(asicdClntDefs.IPv4L3IntfStateNotifyMsg{
+		MsgType: asicdClntDefs.NOTIFY_IPV4_L3INTF_STATE_CHANGE,
+		IpAddr: cfg.IpAddr,
+		IfIndex: int32(intf.Index),
+		IfState: uint8(asicdClntDefs.INTF_STATE_DOWN),
+	})
+	//Notify ip interface deletion 
+	asicdClientMgr.BaseClntInitParams.NHdl.ProcessNotification(asicdClntDefs.IPv4IntfNotifyMsg{
+		MsgType: asicdClntDefs.NOTIFY_IPV4INTF_DELETE,
+		IpAddr: cfg.IpAddr,
+		IfIndex: int32(intf.Index),
+		IntfRef: cfg.IntfRef,
+	})
+	}
 	return true, nil
 }
 

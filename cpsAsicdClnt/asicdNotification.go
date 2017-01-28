@@ -70,7 +70,7 @@ func HandleLinkNotifications(ifIndex, operState C.int) {
 		IfState: ifState,
 	}
 	Logger.Debug("Sending port state change notification for : ", ifIndex, ifState)
-	if nHdl == nil {
+	if nHdl != nil {
 		nHdl.ProcessNotification(msg)
 	}
 }
