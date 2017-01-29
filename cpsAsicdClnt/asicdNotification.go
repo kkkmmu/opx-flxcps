@@ -24,11 +24,11 @@
 package cpsAsicdClnt
 
 import (
-	"utils/clntUtils/clntDefs/asicdClntDefs"
-	"utils/clntUtils/clntIntfs"
 	"github.com/vishvananda/netlink"
 	"net"
 	"strings"
+	"utils/clntUtils/clntDefs/asicdClntDefs"
+	"utils/clntUtils/clntIntfs"
 )
 
 //#include "cps.h"

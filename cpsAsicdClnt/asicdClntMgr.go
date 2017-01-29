@@ -25,9 +25,9 @@ package cpsAsicdClnt
 
 import (
 	"errors"
+	"github.com/vishvananda/netlink"
 	"utils/clntUtils/clntIntfs"
 	"utils/logging"
-	"github.com/vishvananda/netlink"
 )
 
 type Port struct {
@@ -51,10 +51,10 @@ type Vlan struct {
 }
 
 type IPv4Intf struct {
-       IpAddr     string
-       AdminState string
-       IfIdx      int32
-       OperState  string
+	IpAddr     string
+	AdminState string
+	IfIdx      int32
+	OperState  string
 }
 
 type CPSAsicdClntMgr struct {
@@ -63,12 +63,12 @@ type CPSAsicdClntMgr struct {
 	IfIdxToIfTypeMap map[int32]int32
 	VlanDB           map[int32]Vlan
 	VlanList         []int32
-        IPv4IntfDB       map[string]IPv4Intf
-        IPv4IntfList    []string
+	IPv4IntfDB       map[string]IPv4Intf
+	IPv4IntfList     []string
 	clntIntfs.BaseClntInitParams
 	notifyTermCh chan bool
-	AddrSubCh chan netlink.AddrUpdate
-	AddrSubDone chan struct{}
+	AddrSubCh    chan netlink.AddrUpdate
+	AddrSubDone  chan struct{}
 }
 
 var Logger logging.LoggerIntf
@@ -81,7 +81,7 @@ func NewAsicdClntInit(clntInitParams *clntIntfs.BaseClntInitParams) (*CPSAsicdCl
 	cpsAsicdClntMgr.IfIdxToIfIdMap = make(map[int32]int32)
 	cpsAsicdClntMgr.IfIdxToIfTypeMap = make(map[int32]int32)
 	cpsAsicdClntMgr.VlanDB = make(map[int32]Vlan)
-        cpsAsicdClntMgr.IPv4IntfDB = make(map[string]IPv4Intf)
+	cpsAsicdClntMgr.IPv4IntfDB = make(map[string]IPv4Intf)
 	cpsAsicdClntMgr.notifyTermCh = make(chan bool)
 	err := cpsAsicdClntMgr.GetAllPortConfig()
 	if err != nil {

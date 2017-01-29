@@ -24,11 +24,11 @@
 package cpsAsicdClnt
 
 import (
-	"utils/clntUtils/clntDefs/asicdClntDefs"
-	"utils/netUtils"
-	"net"
 	"errors"
 	"fmt"
+	"net"
+	"utils/clntUtils/clntDefs/asicdClntDefs"
+	"utils/netUtils"
 )
 
 /*
@@ -40,10 +40,9 @@ import (
 */
 import "C"
 
-
 func (asicdClientMgr *CPSAsicdClntMgr) CreateIPv4Neighbor(ipAddr, macAddr string, vlanId, ifIndex int32) (val int32, err error) {
-        cpsAsicdMutex.Lock()
-        defer cpsAsicdMutex.Unlock()
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
 
 	var intfName string
 	parsedMacAddr, err := net.ParseMAC(macAddr)
@@ -74,8 +73,8 @@ func (asicdClientMgr *CPSAsicdClntMgr) UpdateIPv4Neighbor(ipAddr, macAddr string
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) DeleteIPv4Neighbor(ipAddr, macAddr string, vlanId, ifIndex int32) (val int32, err error) {
-        cpsAsicdMutex.Lock()
-        defer cpsAsicdMutex.Unlock()
+	cpsAsicdMutex.Lock()
+	defer cpsAsicdMutex.Unlock()
 
 	var intfName string
 	parsedMacAddr, err := net.ParseMAC(macAddr)
