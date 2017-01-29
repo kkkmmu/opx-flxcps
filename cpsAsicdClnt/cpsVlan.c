@@ -22,16 +22,55 @@
 //
 
 #include <cps.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <linux/if.h>
+#include <netdb.h>
+#include <unistd.h>
+
+int get_vlan_if_mac_addr(char *ifName, char *macAddr) {
+	struct ifreq s;
+	int fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+	if (fd < 0) {
+		return -1;
+	}
+
+	strcpy(s.ifr_name, ifName);
+	if (0 == ioctl(fd, SIOCGIFHWADDR, &s)) {
+		sprintf(macAddr, "%02x:%02x:%02x:%02x:%02x:%02x",
+			(unsigned char) s.ifr_addr.sa_data[0],
+			(unsigned char) s.ifr_addr.sa_data[1],
+			(unsigned char) s.ifr_addr.sa_data[2],
+			(unsigned char) s.ifr_addr.sa_data[3],
+			(unsigned char) s.ifr_addr.sa_data[4],
+			(unsigned char) s.ifr_addr.sa_data[5]);
+		close(fd);
+		return 0;
+	}
+	close(fd);
+	return -1;
+}
 
 cps_api_return_code_t _add_ports_to_vlan(char *vlanName, int numOfTagPorts, char **tagPortNameList, int numOfUntagPorts, char **untagPortNameList) {
 	cps_api_return_code_t retVal = cps_api_ret_code_OK;
 	cps_api_object_t obj = cps_api_object_create();
 	int idx = 0;
+	int ret = 0;
 
 	cps_api_key_from_attr_with_qual(cps_api_object_key(obj), DELL_BASE_IF_CMN_IF_INTERFACES_INTERFACE_OBJ, cps_api_qualifier_TARGET);
 
 	cps_api_object_attr_add(obj,IF_INTERFACES_INTERFACE_TYPE, (const char *)IF_INTERFACE_TYPE_IANAIFT_IANA_INTERFACE_TYPE_IANAIFT_L2VLAN, sizeof(IF_INTERFACE_TYPE_IANAIFT_IANA_INTERFACE_TYPE_IANAIFT_L2VLAN));
 	cps_api_object_attr_add(obj, IF_INTERFACES_INTERFACE_NAME, vlanName, strlen(vlanName)+1);
+	char macAddr[18] = {0};
+	memset(macAddr, 0, 18);
+	ret = get_vlan_if_mac_addr(vlanName, macAddr);
+	if (ret < 0) {
+		syslog(LOG_ERR, "Failed to get_vlan_if_macAddr ret: %d\n", ret);
+		return ret;
+	}
+	syslog(LOG_INFO, "get_vlan_if_macAddr %s\n", macAddr);
+
+	cps_api_object_attr_add(obj, DELL_IF_IF_INTERFACES_INTERFACE_PHYS_ADDRESS, macAddr, strlen(macAddr) + 1);
 	for (idx = 0; idx < numOfTagPorts; idx++) {
 		printf("Vlan %s Tag Port %s\n", vlanName, tagPortNameList[idx]);
 		cps_api_object_attr_add(obj, DELL_IF_IF_INTERFACES_INTERFACE_TAGGED_PORTS, tagPortNameList[idx], strlen(tagPortNameList[idx])+1);
@@ -65,7 +104,7 @@ cps_api_return_code_t _add_ports_to_vlan(char *vlanName, int numOfTagPorts, char
 	}
 
 	cps_api_transaction_close(&tr);
-	
+
 	return retVal;
 }
 

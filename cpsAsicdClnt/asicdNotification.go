@@ -28,6 +28,7 @@ import (
 	"utils/clntUtils/clntIntfs"
 	"github.com/vishvananda/netlink"
 	"net"
+	"strings"
 )
 
 //#include "cps.h"
@@ -138,6 +139,18 @@ func (asicdClientMgr *CPSAsicdClntMgr) IPAddrNetLinkSubscriber() {
 		if err != nil {
 			Logger.Err("Error getting the interface using ifIndex")
 			continue
+		}
+		if !strings.HasPrefix(intf.Name, "br") {
+			flag := false
+			for idx := 0; idx < len(asicdClientMgr.PortDB); idx++ {
+				if intf.Name == asicdClientMgr.PortDB[idx].IntfRef {
+					flag = true
+					break
+				}
+			}
+			if flag == false {
+				continue
+			}
 		}
 		if addrUpdate.NewAddr {
 			if len(addrUpdate.LinkAddress.IP) == net.IPv4len {
