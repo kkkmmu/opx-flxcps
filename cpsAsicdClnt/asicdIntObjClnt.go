@@ -147,7 +147,7 @@ func (asicdClientMgr *CPSAsicdClntMgr) DeleteLagCfgIntfList(ifName string, ifInd
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) IsLinuxOnlyPlugin() (bool, error) {
-	return false, nil
+	return true, nil
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) GetAllPortsWithDirtyCache() ([]*asicdClntDefs.Port, error) {
