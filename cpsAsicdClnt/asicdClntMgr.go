@@ -69,6 +69,8 @@ type CPSAsicdClntMgr struct {
 	notifyTermCh chan bool
 	AddrSubCh    chan netlink.AddrUpdate
 	AddrSubDone  chan struct{}
+	LinkSubCh    chan netlink.LinkUpdate
+	LinkSubDone  chan struct{}
 }
 
 var Logger logging.LoggerIntf

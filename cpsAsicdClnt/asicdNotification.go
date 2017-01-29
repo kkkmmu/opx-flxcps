@@ -27,6 +27,7 @@ import (
 	"github.com/vishvananda/netlink"
 	"net"
 	"strings"
+	"strconv"
 	"utils/clntUtils/clntDefs/asicdClntDefs"
 	"utils/clntUtils/clntIntfs"
 )
@@ -52,6 +53,14 @@ func (asicdClientMgr *CPSAsicdClntMgr) InitFSAsicdSubscriber(clntInitParams *cln
 		return err
 	}
 	go asicdClientMgr.IPAddrNetLinkSubscriber()
+	asicdClientMgr.LinkSubCh = make(chan netlink.LinkUpdate)
+	asicdClientMgr.LinkSubDone = make(chan struct{})
+	err = netlink.LinkSubscribe(asicdClientMgr.LinkSubCh, asicdClientMgr.LinkSubDone)
+	if err != nil {
+		Logger.Err("Error opening LinkSubscriber()")
+		return err
+	}
+	go asicdClientMgr.LinkNetLinkSubscriber()
 	return nil
 }
 
@@ -59,6 +68,7 @@ func (asicdClientMgr *CPSAsicdClntMgr) DeinitFSAsicdSubscriber() {
 	//Deregister notification handler
 	C.CPSUnregisterNotificationHandler()
 	close(asicdClientMgr.AddrSubDone)
+	close(asicdClientMgr.LinkSubDone)
 }
 
 //export HandleLinkNotifications
@@ -176,6 +186,44 @@ func (asicdClientMgr *CPSAsicdClntMgr) IPAddrNetLinkSubscriber() {
 				asicdClientMgr.SendIPv4IntfNotifyMsg(asicdClntDefs.NOTIFY_IPV4INTF_DELETE,
 					addrUpdate.LinkAddress.String(), int32(intf.Index), intf.Name)
 			}
+		}
+	}
+}
+
+func (asicdClientMgr *CPSAsicdClntMgr) SendVlanNotifyMsg(msgType int, vlanId uint16, ifIdx int32, vlanName string) {
+	var msg asicdClntDefs.VlanNotifyMsg
+	msg.MsgType = uint8(msgType)
+	msg.VlanId = vlanId
+	msg.VlanIfIndex = ifIdx
+	msg.VlanName = vlanName
+	asicdClientMgr.SendNotification(msg)
+}
+
+func (asicdClientMgr *CPSAsicdClntMgr) LinkNetLinkSubscriber() {
+	for {
+		linkUpdate := <-asicdClientMgr.LinkSubCh
+		linkAttr := linkUpdate.Link.Attrs()
+		intf, err := net.InterfaceByIndex(linkAttr.Index)
+		if err != nil {
+			Logger.Err("Error getting the interface using ifIndex")
+			continue
+		}
+		if !strings.HasPrefix(intf.Name, "br") {
+			continue
+		}
+
+		vlanIdStr := strings.TrimPrefix(intf.Name, "br")
+		vlanId, err := strconv.Atoi(vlanIdStr)
+		if err != nil {
+			Logger.Err("Error getting the vlan Id")
+			continue
+		}
+		if linkAttr.Flags & net.FlagUp == 0 {
+			asicdClientMgr.SendVlanNotifyMsg(asicdClntDefs.NOTIFY_VLAN_DELETE,
+				uint16(vlanId), int32(linkAttr.Index), intf.Name)
+		} else {
+			asicdClientMgr.SendVlanNotifyMsg(asicdClntDefs.NOTIFY_VLAN_CREATE,
+				uint16(vlanId), int32(linkAttr.Index), intf.Name)
 		}
 	}
 }
