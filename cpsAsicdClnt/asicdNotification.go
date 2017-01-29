@@ -26,6 +26,8 @@ package cpsAsicdClnt
 import (
 	"utils/clntUtils/clntDefs/asicdClntDefs"
 	"utils/clntUtils/clntIntfs"
+	"github.com/vishvananda/netlink"
+	"net"
 )
 
 //#include "cps.h"
@@ -41,12 +43,21 @@ func (asicdClientMgr *CPSAsicdClntMgr) InitFSAsicdSubscriber(clntInitParams *cln
 	if ret < 0 {
 		Logger.Err("InitFSAsicdSubscriber failed")
 	}
+	asicdClientMgr.AddrSubCh = make(chan netlink.AddrUpdate)
+	asicdClientMgr.AddrSubDone = make(chan struct{})
+	err := netlink.AddrSubscribe(asicdClientMgr.AddrSubCh, asicdClientMgr.AddrSubDone)
+	if err != nil {
+		Logger.Err("Error opening AddrSubscriber()")
+		return err
+	}
+	go asicdClientMgr.IPAddrNetLinkSubscriber()
 	return nil
 }
 
 func (asicdClientMgr *CPSAsicdClntMgr) DeinitFSAsicdSubscriber() {
 	//Deregister notification handler
 	C.CPSUnregisterNotificationHandler()
+	close(asicdClientMgr.AddrSubDone)
 }
 
 //export HandleLinkNotifications
@@ -70,7 +81,88 @@ func HandleLinkNotifications(ifIndex, operState C.int) {
 		IfState: ifState,
 	}
 	Logger.Debug("Sending port state change notification for : ", ifIndex, ifState)
+	cpsAsicdMutex.Lock()
 	if nHdl != nil {
 		nHdl.ProcessNotification(msg)
+	}
+	cpsAsicdMutex.Unlock()
+}
+
+func (asicdClientMgr *CPSAsicdClntMgr) SendIPv6IntfNotifyMsg(msgType int, ipAddr string, ifIdx int32, intfRef string) {
+	var msg asicdClntDefs.IPv6IntfNotifyMsg
+	msg.MsgType = uint8(msgType)
+	msg.IpAddr = ipAddr
+	msg.IfIndex = ifIdx
+	msg.IntfRef = intfRef
+	asicdClientMgr.SendNotification(msg)
+}
+
+func (asicdClientMgr *CPSAsicdClntMgr) SendIPv6IntfStateNotifyMsg(msgType int, ipAddr string, ifIdx int32, state uint8) {
+	var msg asicdClntDefs.IPv6L3IntfStateNotifyMsg
+	msg.MsgType = uint8(msgType)
+	msg.IpAddr = ipAddr
+	msg.IfIndex = ifIdx
+	msg.IfState = state
+	asicdClientMgr.SendNotification(msg)
+}
+
+func (asicdClientMgr *CPSAsicdClntMgr) SendIPv4IntfNotifyMsg(msgType int, ipAddr string, ifIdx int32, intfRef string) {
+	var msg asicdClntDefs.IPv4IntfNotifyMsg
+	msg.MsgType = uint8(msgType)
+	msg.IpAddr = ipAddr
+	msg.IfIndex = ifIdx
+	msg.IntfRef = intfRef
+	asicdClientMgr.SendNotification(msg)
+}
+
+func (asicdClientMgr *CPSAsicdClntMgr) SendIPv4IntfStateNotifyMsg(msgType int, ipAddr string, ifIdx int32, state uint8) {
+	var msg asicdClntDefs.IPv4L3IntfStateNotifyMsg
+	msg.MsgType = uint8(msgType)
+	msg.IpAddr = ipAddr
+	msg.IfIndex = ifIdx
+	msg.IfState = state
+	asicdClientMgr.SendNotification(msg)
+}
+
+func (asicdClientMgr *CPSAsicdClntMgr) SendNotification(msg clntIntfs.NotifyMsg) {
+	cpsAsicdMutex.Lock()
+	Logger.Info("Send Notification", msg)
+	asicdClientMgr.BaseClntInitParams.NHdl.ProcessNotification(msg)
+	cpsAsicdMutex.Unlock()
+}
+
+func (asicdClientMgr *CPSAsicdClntMgr) IPAddrNetLinkSubscriber() {
+	for {
+		addrUpdate := <-asicdClientMgr.AddrSubCh
+		intf, err := net.InterfaceByIndex(addrUpdate.LinkIndex)
+		if err != nil {
+			Logger.Err("Error getting the interface using ifIndex")
+			continue
+		}
+		if addrUpdate.NewAddr {
+			if len(addrUpdate.LinkAddress.IP) == net.IPv4len {
+				asicdClientMgr.SendIPv4IntfNotifyMsg(asicdClntDefs.NOTIFY_IPV4INTF_CREATE,
+					addrUpdate.LinkAddress.String(), int32(intf.Index), intf.Name)
+				asicdClientMgr.SendIPv4IntfStateNotifyMsg(asicdClntDefs.NOTIFY_IPV4_L3INTF_STATE_CHANGE,
+					addrUpdate.LinkAddress.String(), int32(intf.Index), uint8(asicdClntDefs.INTF_STATE_UP))
+			} else if len(addrUpdate.LinkAddress.IP) == net.IPv6len {
+				asicdClientMgr.SendIPv4IntfNotifyMsg(asicdClntDefs.NOTIFY_IPV4INTF_CREATE,
+					addrUpdate.LinkAddress.String(), int32(intf.Index), intf.Name)
+				asicdClientMgr.SendIPv4IntfStateNotifyMsg(asicdClntDefs.NOTIFY_IPV4_L3INTF_STATE_CHANGE,
+					addrUpdate.LinkAddress.String(), int32(intf.Index), uint8(asicdClntDefs.INTF_STATE_UP))
+			}
+		} else {
+			if len(addrUpdate.LinkAddress.IP) == net.IPv4len {
+				asicdClientMgr.SendIPv4IntfStateNotifyMsg(asicdClntDefs.NOTIFY_IPV4_L3INTF_STATE_CHANGE,
+					addrUpdate.LinkAddress.String(), int32(intf.Index), uint8(asicdClntDefs.INTF_STATE_DOWN))
+				asicdClientMgr.SendIPv4IntfNotifyMsg(asicdClntDefs.NOTIFY_IPV4INTF_DELETE,
+					addrUpdate.LinkAddress.String(), int32(intf.Index), intf.Name)
+			} else if len(addrUpdate.LinkAddress.IP) == net.IPv6len {
+				asicdClientMgr.SendIPv4IntfStateNotifyMsg(asicdClntDefs.NOTIFY_IPV4_L3INTF_STATE_CHANGE,
+					addrUpdate.LinkAddress.String(), int32(intf.Index), uint8(asicdClntDefs.INTF_STATE_DOWN))
+				asicdClientMgr.SendIPv4IntfNotifyMsg(asicdClntDefs.NOTIFY_IPV4INTF_DELETE,
+					addrUpdate.LinkAddress.String(), int32(intf.Index), intf.Name)
+			}
+		}
 	}
 }

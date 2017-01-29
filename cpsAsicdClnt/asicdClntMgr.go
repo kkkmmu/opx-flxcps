@@ -27,6 +27,7 @@ import (
 	"errors"
 	"utils/clntUtils/clntIntfs"
 	"utils/logging"
+	"github.com/vishvananda/netlink"
 )
 
 type Port struct {
@@ -66,6 +67,8 @@ type CPSAsicdClntMgr struct {
         IPv4IntfList    []string
 	clntIntfs.BaseClntInitParams
 	notifyTermCh chan bool
+	AddrSubCh chan netlink.AddrUpdate
+	AddrSubDone chan struct{}
 }
 
 var Logger logging.LoggerIntf
@@ -84,9 +87,11 @@ func NewAsicdClntInit(clntInitParams *clntIntfs.BaseClntInitParams) (*CPSAsicdCl
 	if err != nil {
 		return nil, errors.New("Failed GetAllPortConfig()")
 	}
-	err = cpsAsicdClntMgr.InitFSAsicdSubscriber(clntInitParams)
-	if err != nil {
-		Logger.Err("NewAsicdClntInit: Failed to initialize notification subscriber")
+	if clntInitParams.NHdl != nil {
+		err = cpsAsicdClntMgr.InitFSAsicdSubscriber(clntInitParams)
+		if err != nil {
+			Logger.Err("NewAsicdClntInit: Failed to initialize notification subscriber")
+		}
 	}
 	return cpsAsicdClntMgr, nil
 }
@@ -94,5 +99,7 @@ func NewAsicdClntInit(clntInitParams *clntIntfs.BaseClntInitParams) (*CPSAsicdCl
 func (asicdClientMgr *CPSAsicdClntMgr) AsicdClntDeinit() {
 	asicdClientMgr.IfIdxToIfIdMap = nil
 	asicdClientMgr.IfIdxToIfTypeMap = nil
-	asicdClientMgr.DeinitFSAsicdSubscriber()
+	if asicdClientMgr.BaseClntInitParams.NHdl != nil {
+		asicdClientMgr.DeinitFSAsicdSubscriber()
+	}
 }
