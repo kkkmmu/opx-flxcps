@@ -35,7 +35,7 @@ import (
 #include <stdlib.h>
 #include <cps.h>
 #cgo CFLAGS: -I. -I/usr/include/
-#cgo LDFLAGS: -L/usr/lib/x86_64-linux-gnu/ -lsonic_object_library
+#cgo LDFLAGS: -L/usr/lib/x86_64-linux-gnu/ -lopx_common -lopx_cps_api_common
 */
 import "C"
 

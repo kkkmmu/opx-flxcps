@@ -62,6 +62,7 @@ cps_api_return_code_t CPSGetAllPortCfg(PortCfg_t *portCfg, uint8_t *count) {
 }
 
 cps_api_return_code_t CPSSetPortAdminState(char *intfRef, uint8_t val) {
+	bool state = false;
 	cps_api_return_code_t retVal = cps_api_ret_code_OK;
     	cps_api_object_t obj = cps_api_object_create();
 
@@ -72,6 +73,7 @@ cps_api_return_code_t CPSSetPortAdminState(char *intfRef, uint8_t val) {
                intfRef,strlen(intfRef)+1);
 
     	cps_api_object_attr_add_u32(obj,IF_INTERFACES_INTERFACE_ENABLED, (uint32_t)val);
+	cps_api_object_attr_add_u32(obj,DELL_IF_IF_INTERFACES_INTERFACE_AUTO_NEGOTIATION,state);
 
         cps_api_transaction_params_t tr;
         retVal = cps_api_transaction_init(&tr);
