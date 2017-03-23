@@ -35,7 +35,7 @@ int get_vlan_if_mac_addr(char *ifName, char *macAddr) {
 		return -1;
 	}
 
-	strcpy(s.ifr_name, ifName);
+	strcpy(s.ifr_name, "eth0");
 	if (0 == ioctl(fd, SIOCGIFHWADDR, &s)) {
 		sprintf(macAddr, "%02x:%02x:%02x:%02x:%02x:%02x",
 			(unsigned char) s.ifr_addr.sa_data[0],
