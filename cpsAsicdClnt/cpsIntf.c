@@ -61,8 +61,14 @@ cps_api_return_code_t CPSGetAllPortCfg(PortCfg_t *portCfg, uint8_t *count) {
 
 }
 
-cps_api_return_code_t CPSSetPortAdminState(char *intfRef, uint8_t val) {
+cps_api_return_code_t CPSSetPortAdminState(char *intfRef, uint8_t val, uint8_t an) {
 	bool state = false;
+
+	if (an == 1) {
+		state = true;
+	} else {
+		state = false;
+	}
 	cps_api_return_code_t retVal = cps_api_ret_code_OK;
     	cps_api_object_t obj = cps_api_object_create();
 

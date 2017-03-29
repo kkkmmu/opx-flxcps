@@ -57,6 +57,15 @@ type IPv4Intf struct {
 	OperState  string
 }
 
+type IPv4RouteData struct {
+	NhList map[string]bool
+}
+
+type IPv4RouteKey struct {
+	DestNw string
+	PrefixLen int
+}
+
 type CPSAsicdClntMgr struct {
 	PortDB           []Port
 	IfIdxToIfIdMap   map[int32]int32
@@ -71,6 +80,7 @@ type CPSAsicdClntMgr struct {
 	AddrSubDone  chan struct{}
 	LinkSubCh    chan netlink.LinkUpdate
 	LinkSubDone  chan struct{}
+	IPv4RouteDB map[IPv4RouteKey]IPv4RouteData
 }
 
 var Logger logging.LoggerIntf
@@ -85,6 +95,7 @@ func NewAsicdClntInit(clntInitParams *clntIntfs.BaseClntInitParams) (*CPSAsicdCl
 	cpsAsicdClntMgr.VlanDB = make(map[int32]Vlan)
 	cpsAsicdClntMgr.IPv4IntfDB = make(map[string]IPv4Intf)
 	cpsAsicdClntMgr.notifyTermCh = make(chan bool)
+	cpsAsicdClntMgr.IPv4RouteDB = make(map[IPv4RouteKey]IPv4RouteData)
 	err := cpsAsicdClntMgr.GetAllPortConfig()
 	if err != nil {
 		return nil, errors.New("Failed GetAllPortConfig()")

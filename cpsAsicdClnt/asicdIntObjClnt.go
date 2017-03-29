@@ -162,12 +162,34 @@ func (asicdClientMgr *CPSAsicdClntMgr) OnewayCreateIPv4Route(ipv4RouteList []*as
 			Logger.Err("Error getting the prefixlen for:", ipv4RouteList[idx])
 			continue
 		}
+		ipv4RouteKey := IPv4RouteKey {
+			DestNw: destNw,
+			PrefixLen: prefixLen,
+		}
+		routeEnt, exist := asicdClientMgr.IPv4RouteDB[ipv4RouteKey]
+		if !exist {
+			routeEnt.NhList = make(map[string]bool)
+		} else {
+			rv := int(C.CPSDeleteIPv4Route(C.CString(destNw), C.uint32_t(prefixLen)))
+			if rv != 0 {
+				Logger.Info("Error Deleting IPv4Route", destNw, prefixLen)
+			}
+		}
 		for idx1 := 0; idx1 < len(ipv4RouteList[idx].NextHopList); idx1++ {
 			nhIP := ipv4RouteList[idx].NextHopList[idx1].NextHopIp
-			rv := int(C.CPSCreateIPv4Route(C.CString(destNw), C.uint32_t(prefixLen), C.CString(nhIP)))
-			if rv != 0 {
-				Logger.Info("Error Creating IPv4Route", destNw, prefixLen, nhIP)
-			}
+			routeEnt.NhList[nhIP] = true
+		}
+		asicdClientMgr.IPv4RouteDB[ipv4RouteKey] = routeEnt
+		nhList := C.MakeCharArray(C.int(len(routeEnt.NhList)))
+		defer C.FreeCharArray(nhList, C.int(len(routeEnt.NhList)))
+		var idx int
+		for key, _ := range routeEnt.NhList {
+			C.SetArrayString(nhList, C.CString(key), C.int(idx))
+			idx++
+		}
+		rv := int(C.CPSCreateIPv4Route(C.CString(destNw), C.uint32_t(prefixLen), C.uint32_t(len(routeEnt.NhList)), nhList))
+		if rv != 0 {
+			Logger.Info("Error Creating IPv4Route", destNw, prefixLen, nhList)
 		}
 	}
 }
@@ -179,11 +201,37 @@ func (asicdClientMgr *CPSAsicdClntMgr) OnewayDeleteIPv4Route(ipv4RouteList []*as
 			Logger.Err("Error getting the prefixlen for:", ipv4RouteList[idx])
 			continue
 		}
-		for idx1 := 0; idx1 < len(ipv4RouteList[idx].NextHopList); idx1++ {
-			nhIP := ipv4RouteList[idx].NextHopList[idx1].NextHopIp
-			rv := int(C.CPSDeleteIPv4Route(C.CString(destNw), C.uint32_t(prefixLen), C.CString(nhIP)))
+		ipv4RouteKey := IPv4RouteKey {
+			DestNw: destNw,
+			PrefixLen: prefixLen,
+		}
+		routeEnt, exist := asicdClientMgr.IPv4RouteDB[ipv4RouteKey]
+		if !exist {
+			return
+		} else {
+			rv := int(C.CPSDeleteIPv4Route(C.CString(destNw), C.uint32_t(prefixLen)))
 			if rv != 0 {
-				Logger.Info("Error Creating IPv4Route", destNw, prefixLen, nhIP)
+				Logger.Info("Error Deleting IPv4Route", destNw, prefixLen)
+			}
+			for idx1 := 0; idx1 < len(ipv4RouteList[idx].NextHopList); idx1++ {
+				nhIP := ipv4RouteList[idx].NextHopList[idx1].NextHopIp
+				delete(routeEnt.NhList, nhIP)
+			}
+			if len(routeEnt.NhList) == 0 {
+				delete(asicdClientMgr.IPv4RouteDB, ipv4RouteKey)
+			} else {
+				asicdClientMgr.IPv4RouteDB[ipv4RouteKey] = routeEnt
+				nhList := C.MakeCharArray(C.int(len(routeEnt.NhList)))
+				defer C.FreeCharArray(nhList, C.int(len(routeEnt.NhList)))
+				var idx int
+				for key, _ := range routeEnt.NhList {
+					C.SetArrayString(nhList, C.CString(key), C.int(idx))
+					idx++
+				}
+				rv := int(C.CPSCreateIPv4Route(C.CString(destNw), C.uint32_t(prefixLen), C.uint32_t(len(routeEnt.NhList)), nhList))
+				if rv != 0 {
+					Logger.Info("Error Creating IPv4Route", destNw, prefixLen, nhList)
+				}
 			}
 		}
 	}

@@ -455,12 +455,21 @@ func (asicdClientMgr *CPSAsicdClntMgr) UpdatePort(origCfg, newCfg *objects.Port,
 		return false, errors.New(fmt.Sprintln("Error Invalid IntfRef", newCfg.IntfRef))
 	}
 
-	if (mask & asicdClntDefs.PORT_UPDATE_ATTR_ADMIN_STATE) == asicdClntDefs.PORT_UPDATE_ATTR_ADMIN_STATE {
+	if (((mask & asicdClntDefs.PORT_UPDATE_ATTR_ADMIN_STATE) == asicdClntDefs.PORT_UPDATE_ATTR_ADMIN_STATE) ||
+	((mask & asicdClntDefs.PORT_UPDATE_ATTR_AUTONEG) == asicdClntDefs.PORT_UPDATE_ATTR_AUTONEG)) {
 		var val uint8
+		var an uint8
 		if newCfg.AdminState == "UP" {
 			val = 1
+		} else {
+			val = 0
 		}
-		rv := int(C.CPSSetPortAdminState(C.CString(newCfg.IntfRef), C.uint8_t(val)))
+		if newCfg.Autoneg == "ON" {
+			an = 1
+		} else {
+			an = 0
+		}
+		rv := int(C.CPSSetPortAdminState(C.CString(newCfg.IntfRef), C.uint8_t(val), C.uint8_t(an)))
 		if rv != 0 {
 			return false, errors.New("Error Setting Port AdminState")
 		}
