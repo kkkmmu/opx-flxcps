@@ -55,6 +55,32 @@ typedef struct portCfg_s {
 	char PortName[IF_NAMESIZE];
 } PortCfg_t;
 
+typedef struct portState_s {
+	uint64_t IfInOctets; //IF_INTERFACES_STATE_INTERFACE_STATISTICS_IN_OCTETS
+	uint64_t IfInUcastPkts; //IF_INTERFACES_STATE_INTERFACE_STATISTICS_IN_UNICAST_PKTS
+	uint64_t IfInDiscards; //IF_INTERFACES_STATE_INTERFACE_STATISTICS_IN_DISCARDS
+	uint64_t IfInErrors; //IF_INTERFACES_STATE_INTERFACE_STATISTICS_IN_ERRORS
+	uint64_t IfInUnknownProtos; //IF_INTERFACES_STATE_INTERFACE_STATISTICS_IN_UNKNOWN_PROTOS
+	uint64_t IfOutOctets; //IF_INTERFACES_STATE_INTERFACE_STATISTICS_OUT_OCTETS
+	uint64_t IfOutUcastPkts; //IF_INTERFACES_STATE_INTERFACE_STATISTICS_OUT_UNICAST_PKTS
+	uint64_t IfOutDiscards; //IF_INTERFACES_STATE_INTERFACE_STATISTICS_OUT_DISCARDS
+	uint64_t IfOutErrors; //IF_INTERFACES_STATE_INTERFACE_STATISTICS_OUT_ERRORS
+	uint64_t IfEtherUnderSizePktCnt; //DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_UNDERSIZE_PKTS
+	uint64_t IfEtherOverSizePktCnt; //DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_OVERSIZE_PKTS
+	uint64_t IfEtherFragments; //DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_FRAGMENTS
+	uint64_t IfEtherCRCAlignError; //DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_CRC_ALIGN_ERRORS
+	uint64_t IfEtherJabber; //DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_JABBERS
+	uint64_t IfEtherPkts; //DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_PKTS
+	uint64_t IfEtherMCPkts; //DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_MULTICAST_PKTS
+	uint64_t IfEtherBcastPkts; //DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_BROADCAST_PKTS
+	uint64_t IfEtherPkts64OrLessOctets;
+	uint64_t IfEtherPkts65To127Octets;
+	uint64_t IfEtherPkts128To255Octets;
+	uint64_t IfEtherPkts256To511Octets;
+	uint64_t IfEtherPkts512To1023Octets;
+	uint64_t IfEtherPkts1024To1518Octets;
+} PortState_t;
+
 char** MakeCharArray(int size);
 void SetArrayString(char **a, char *s, int n);
 void FreeCharArray(char **a, int size);
@@ -69,6 +95,7 @@ cps_api_return_code_t CPSDeleteIPv4Route(char *destNw, uint32_t prefix);
 cps_api_return_code_t CPSCreateIPv4Neighbor(char *nbrIp, char *intf, uint8_t macAddr[6]);
 cps_api_return_code_t CPSDeleteIPv4Neighbor(char *nbrIp, char *intf, uint8_t macAddr[6]);
 cps_api_return_code_t CPSGetAllPortCfg(PortCfg_t *portCfg, uint8_t *count);
+cps_api_return_code_t CPSGetPortState(char *ifName, PortState_t *portState);
 cps_api_return_code_t CPSSetPortAdminState(char *intfRef, uint8_t val, uint8_t an);
 
 //Notification related APIs

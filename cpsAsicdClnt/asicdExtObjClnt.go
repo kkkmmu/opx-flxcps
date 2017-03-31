@@ -558,10 +558,29 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetBulkPortState(fromIdx, count int) (*as
 			break
 		}
 		var portState objects.PortState
+		var pState C.PortState_t
 		portState.IntfRef = asicdClientMgr.PortDB[idx].IntfRef
 		portState.IfIndex = asicdClientMgr.PortDB[idx].IfIndex
 		portState.Name = asicdClientMgr.PortDB[idx].IntfRef
 		portState.OperState = asicdClientMgr.PortDB[idx].OperState
+		C.CPSGetPortState(C.CString(portState.IntfRef), &pState)
+		portState.IfInOctets = int64(pState.IfInOctets)
+		portState.IfInUcastPkts = int64(pState.IfInUcastPkts)
+		portState.IfInDiscards = int64(pState.IfInDiscards)
+		portState.IfInErrors = int64(pState.IfInErrors)
+		portState.IfInUnknownProtos = int64(pState.IfInUnknownProtos)
+		portState.IfOutOctets = int64(pState.IfOutOctets)
+		portState.IfOutUcastPkts = int64(pState.IfOutUcastPkts)
+		portState.IfOutDiscards = int64(pState.IfOutDiscards)
+		portState.IfOutErrors = int64(pState.IfOutErrors)
+		portState.IfEtherUnderSizePktCnt = int64(pState.IfEtherUnderSizePktCnt)
+		portState.IfEtherOverSizePktCnt = int64(pState.IfEtherOverSizePktCnt)
+		portState.IfEtherFragments = int64(pState.IfEtherFragments)
+		portState.IfEtherCRCAlignError = int64(pState.IfEtherCRCAlignError)
+		portState.IfEtherJabber = int64(pState.IfEtherJabber)
+		portState.IfEtherPkts = int64(pState.IfEtherPkts)
+		portState.IfEtherMCPkts = int64(pState.IfEtherMCPkts)
+		portState.IfEtherBcastPkts = int64(pState.IfEtherBcastPkts)
 		retObj.PortStateList = append(retObj.PortStateList, &portState)
 		numEntries++
 	}
@@ -588,10 +607,29 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetPortState(IntfRef string) (*objects.Po
 		return nil, errors.New("Invalid IntfRef")
 	}
 	var retObj objects.PortState
+	var pState C.PortState_t
 	retObj.IntfRef = asicdClientMgr.PortDB[idx].IntfRef
 	retObj.IfIndex = asicdClientMgr.PortDB[idx].IfIndex
 	retObj.Name = asicdClientMgr.PortDB[idx].IntfRef
 	retObj.OperState = asicdClientMgr.PortDB[idx].OperState
+	C.CPSGetPortState(C.CString(retObj.IntfRef), &pState)
+	retObj.IfInOctets = int64(pState.IfInOctets)
+	retObj.IfInUcastPkts = int64(pState.IfInUcastPkts)
+	retObj.IfInDiscards = int64(pState.IfInDiscards)
+	retObj.IfInErrors = int64(pState.IfInErrors)
+	retObj.IfInUnknownProtos = int64(pState.IfInUnknownProtos)
+	retObj.IfOutOctets = int64(pState.IfOutOctets)
+	retObj.IfOutUcastPkts = int64(pState.IfOutUcastPkts)
+	retObj.IfOutDiscards = int64(pState.IfOutDiscards)
+	retObj.IfOutErrors = int64(pState.IfOutErrors)
+	retObj.IfEtherUnderSizePktCnt = int64(pState.IfEtherUnderSizePktCnt)
+	retObj.IfEtherOverSizePktCnt = int64(pState.IfEtherOverSizePktCnt)
+	retObj.IfEtherFragments = int64(pState.IfEtherFragments)
+	retObj.IfEtherCRCAlignError = int64(pState.IfEtherCRCAlignError)
+	retObj.IfEtherJabber = int64(pState.IfEtherJabber)
+	retObj.IfEtherPkts = int64(pState.IfEtherPkts)
+	retObj.IfEtherMCPkts = int64(pState.IfEtherMCPkts)
+	retObj.IfEtherBcastPkts = int64(pState.IfEtherBcastPkts)
 	return &retObj, nil
 }
 

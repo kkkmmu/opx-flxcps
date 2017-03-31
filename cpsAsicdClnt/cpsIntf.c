@@ -106,3 +106,99 @@ cps_api_return_code_t CPSSetPortAdminState(char *intfRef, uint8_t val, uint8_t a
 	return retVal;
 }
 
+void nas_stat_dump_object_content(cps_api_object_t obj, PortState_t *portState){
+	cps_api_object_it_t it;
+	cps_api_object_it_begin(obj,&it);
+
+
+        while (cps_api_object_it_valid(&it)) {
+                switch (cps_api_object_attr_id(it.attr)) {
+		case IF_INTERFACES_STATE_INTERFACE_STATISTICS_IN_OCTETS:
+			portState->IfInOctets = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case IF_INTERFACES_STATE_INTERFACE_STATISTICS_IN_UNICAST_PKTS:
+			portState->IfInUcastPkts = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case IF_INTERFACES_STATE_INTERFACE_STATISTICS_IN_DISCARDS:
+			portState->IfInDiscards = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case IF_INTERFACES_STATE_INTERFACE_STATISTICS_IN_ERRORS:
+			portState->IfInErrors = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case IF_INTERFACES_STATE_INTERFACE_STATISTICS_IN_UNKNOWN_PROTOS:
+			portState->IfInUnknownProtos = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case IF_INTERFACES_STATE_INTERFACE_STATISTICS_OUT_OCTETS:
+			portState->IfOutOctets = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case IF_INTERFACES_STATE_INTERFACE_STATISTICS_OUT_UNICAST_PKTS:
+			portState->IfOutUcastPkts = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case IF_INTERFACES_STATE_INTERFACE_STATISTICS_OUT_DISCARDS:
+			portState->IfOutDiscards = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case IF_INTERFACES_STATE_INTERFACE_STATISTICS_OUT_ERRORS:
+			portState->IfOutErrors = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_UNDERSIZE_PKTS:
+			portState->IfEtherUnderSizePktCnt = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_OVERSIZE_PKTS:
+			portState->IfEtherOverSizePktCnt = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_FRAGMENTS:
+			portState->IfEtherFragments = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_CRC_ALIGN_ERRORS:
+			portState->IfEtherCRCAlignError = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_JABBERS:
+			portState->IfEtherJabber = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_PKTS:
+			portState->IfEtherPkts = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_MULTICAST_PKTS:
+			portState->IfEtherMCPkts = cps_api_object_attr_data_u64(it.attr);
+			break;
+		case DELL_IF_IF_INTERFACES_STATE_INTERFACE_STATISTICS_ETHER_BROADCAST_PKTS:
+			portState->IfEtherBcastPkts = cps_api_object_attr_data_u64(it.attr);
+			break;
+		}
+		cps_api_object_it_next(&it);
+	}
+}
+
+cps_api_return_code_t CPSGetPortState(char *ifName, PortState_t *portState) {
+	cps_api_get_params_t gp;
+	cps_api_return_code_t retVal = cps_api_ret_code_OK;
+	cps_api_get_request_init(&gp);
+
+	cps_api_object_t obj = cps_api_object_list_create_obj_and_append(gp.filters);
+
+	if (obj == NULL) {
+		printf("Can not create new object\n");
+		return -1;
+	}
+
+	cps_api_key_from_attr_with_qual(cps_api_object_key(obj),
+		DELL_BASE_IF_CMN_IF_INTERFACES_STATE_INTERFACE_STATISTICS_OBJ, cps_api_qualifier_OBSERVED);
+
+	cps_api_object_attr_add(obj,IF_INTERFACES_STATE_INTERFACE_TYPE,
+		(const char *)IF_INTERFACE_TYPE_IANAIFT_IANA_INTERFACE_TYPE_IANAIFT_ETHERNETCSMACD,
+		sizeof(IF_INTERFACE_TYPE_IANAIFT_IANA_INTERFACE_TYPE_IANAIFT_ETHERNETCSMACD));
+
+	cps_api_set_key_data(obj,IF_INTERFACES_STATE_INTERFACE_NAME,cps_api_object_ATTR_T_BIN, ifName,strlen(ifName)+1);
+
+	if (cps_api_get(&gp)==cps_api_ret_code_OK) {
+
+		size_t mx = cps_api_object_list_size(gp.list);
+		for (size_t ix = 0 ; ix < mx ; ++ix ) {
+			cps_api_object_t obj = cps_api_object_list_get(gp.list,ix);
+			nas_stat_dump_object_content(obj, portState);
+		}
+	}
+
+	cps_api_get_request_close(&gp);
+	return retVal;
+}
