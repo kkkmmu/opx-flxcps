@@ -92,18 +92,33 @@ func (asicdClientMgr *CPSAsicdClntMgr) GetAllSubIPv4IntfState() ([]*objects.SubI
 	return retObj, nil
 }
 
+type PortCfgGo struct {
+	Name string
+}
+
 func (asicdClientMgr *CPSAsicdClntMgr) GetAllPortConfig() error {
-	portCfg := make([]PortCfg, 256)
+	//portCfg := make([]PortCfg, 256)
 	count := uint8(0)
+	ret, count, portCfgGo := GetAllPortCfg()
+	if ret != 0 {
+		Logger.Err("Error GetAllPortCfg()", ret)
+		return errors.New("Error GetAllPortCfg()")
+	}
+/*
 	ret := int(C.CPSGetAllPortCfg((*C.struct_portCfg_s)(&portCfg[0]), (*C.uint8_t)(&count)))
 	if ret != 0 {
 		Logger.Err("Error GetAllPortCfg()", ret)
 		return errors.New("Error GetAllPortCfg()")
 	}
-	Logger.Info("Port Config:", portCfg)
+	Logger.Info("Port Config:", portCfg, "Count:", count)
+*/
+	Logger.Info("Port Config:", portCfgGo, "Count:", count)
 	portMap := make(map[string]bool)
 	for idx := 0; idx < int(count); idx++ {
+/*
 		portName := C.GoString(&(portCfg[idx].PortName[0]))
+*/
+		portName := portCfgGo[idx].Name
 		_, exist := portMap[portName]
 		if !exist {
 			var port Port
